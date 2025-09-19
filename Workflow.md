@@ -4,9 +4,9 @@
 graph TD
     subgraph "Forward Process (Noise Addition)"
         A["F-MNIST Image Data"] --> B{"Quantum State Encoding"};
-        B --> C["Clean Quantum State :: $|\\psi(0)\\rangle$"];
+        B --> C["Clean Quantum State :: $|\psi(0)\rangle$"];
         C --> D{"Forward Diffusion Circuit :: (Adding Gaussian Noise)"};
-        D --> E["Noisy Quantum State :: $|\\psi(t)\\rangle$"];
+        D --> E["Noisy Quantum State :: $|\psi(t)\rangle$"];
     end
 
     subgraph "Reverse Process (Noise Removal)"
@@ -15,7 +15,7 @@ graph TD
             H["Loss Function :: (e.g., Fidelity, KL Divergence)"] --> I{"Classical Optimizer"};
             I --> F;
         end
-        F --> G["Denoised Quantum State :: $|\\psi'(0)\\rangle$"];
+        F --> G["Denoised Quantum State :: $|\psi'(0)\rangle$"];
         G --> J{"Quantum State Measurement"};
     end
 
