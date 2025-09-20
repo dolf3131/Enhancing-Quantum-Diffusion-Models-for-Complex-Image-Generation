@@ -19,4 +19,4 @@ Project members will collaborate through **GitHub** for code contributions, **Di
 | Name | GitHub Profile | LinkedIn Profile |
 |:---|:---|:---|
 | Jeongbin Jo | [@dolf3131](https://github.com/dolf3131) | [Jeongbin Jo](https://www.linkedin.com/in/jeongbinjo3131/) |
-| Mentee 2 Name | [GitHub Profile](#YOUR_GITHUB_PROFILE_LINK) | [LinkedIn Profile](#YOUR_LINKEDIN_PROFILE_LINK) |
+| Santanam Wishal | [@kianaaa19](https://github.com/kianaaa19) | [Santanam Wishal](https://www.linkedin.com/in/santawishal) |
