@@ -20,3 +20,4 @@ Project members will collaborate through **GitHub** for code contributions, **Di
 |:---|:---|:---|
 | Jeongbin Jo | [@dolf3131](https://github.com/dolf3131) | [Jeongbin Jo](https://www.linkedin.com/in/jeongbinjo3131/) |
 | Santanam Wishal | [@kianaaa19](https://github.com/kianaaa19) | [Santanam Wishal](https://www.linkedin.com/in/santawishal) |
+| Shah Md Khalil Ullah | [@Kodarrr](https://github.com/Kodarrr) | [Shah Md Khalil Ullah](https://www.linkedin.com/in/shah-md-khalil-ullah-02396b2b0/) |
