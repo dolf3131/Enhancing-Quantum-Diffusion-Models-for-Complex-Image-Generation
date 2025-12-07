@@ -1,2 +1,15 @@
 Quantum Diffusion Models.pdf
-latex
+
+latex/main.aux
+latex/main.fdb_latexmk
+latex/main.fls
+latex/main.log
+latex/main.synctex.gz
+latex/main.toc
+latex/main.bbl
+latex/main.blg
+
+
+implementation/main.py
+implementation/resnet.py
+implementation/unet.py
