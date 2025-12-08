@@ -1,4 +1,4 @@
-Quantum Diffusion Models.pdf
+ref
 
 latex/main.aux
 latex/main.fdb_latexmk
@@ -7,7 +7,10 @@ latex/main.log
 latex/main.synctex.gz
 latex/main.toc
 latex/main.bbl
+latex/main.bcf
 latex/main.blg
+latex/main.out
+latex/main.run.xml
 
 
 implementation/main.py
