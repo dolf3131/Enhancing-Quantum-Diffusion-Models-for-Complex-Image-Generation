@@ -100,7 +100,7 @@ style=numeric
     This property allows for efficient training by eliminating the need to iterate through all previous timesteps.
 
     \subsubsection{Reverse Process: Generative Process}
-    The generative process is defined as the reverse Markov chain. Since the exact reverse posterior $q(x_{t-1}|x_t)$ is intractable, we approximate it using a neural network with parameters $\theta$:
+    The generative process\cite{DBLP:journals/corr/abs-2006-11239} is defined as the reverse Markov chain. Since the exact reverse posterior $q(x_{t-1}|x_t)$ is intractable, we approximate it using a neural network with parameters $\theta$:
     \begin{equation}
       p_\theta(x_{t-1} | x_t) = \mathcal{N}\left(x_{t-1} ; \mu_\theta(x_t, t), \Sigma_\theta(x_t, t) \right)
     \end{equation}
@@ -112,7 +112,7 @@ style=numeric
       \mathcal{L} = \mathbb{E} \left[ - \log p_\theta(\mathbf{x}_0) \right] \leq \mathbb{E}_q \left[ - \log \frac{p_\theta(\mathbf{x}_{0:T})}{q(\mathbf{x}_{1:T} | \mathbf{x}_0)} \right]
     \end{equation}
     
-    This can be rewritten as a sum of KL divergence terms:
+    This can be rewritten as a sum of KL divergence\cite{kl-divergence} terms:
     \begin{equation}
         \mathcal{L} = \mathbb{E}_q \left[ \underbrace{D_{KL}(q(\mathbf{x}_T|\mathbf{x}_0) || p(\mathbf{x}_T))}_{L_T} + \sum_{t>1} \underbrace{D_{KL}(q(\mathbf{x}_{t-1}|\mathbf{x}_t, \mathbf{x}_0) || p_\theta(\mathbf{x}_{t-1}|\mathbf{x}_t))}_{L_{t-1}} \underbrace{- \log p_\theta(\mathbf{x}_0|\mathbf{x}_1)}_{L_0} \right]
     \end{equation}
