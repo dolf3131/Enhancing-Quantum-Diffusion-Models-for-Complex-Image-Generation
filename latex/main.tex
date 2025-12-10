@@ -1,5 +1,6 @@
 \documentclass[12pt]{article}
 \usepackage{fullpage,enumitem,amsmath,amssymb,graphicx}
+\usepackage{braket}
 %\usepackage[hangul]{kotex}
 \usepackage[
 backend=biber,
@@ -100,7 +101,8 @@ style=numeric
     This property allows for efficient training by eliminating the need to iterate through all previous timesteps.
 
     \subsubsection{Reverse Process: Generative Process}
-    The generative process\cite{DBLP:journals/corr/abs-2006-11239} is defined as the reverse Markov chain. Since the exact reverse posterior $q(x_{t-1}|x_t)$ is intractable, we approximate it using a neural network with parameters $\theta$:
+    The generative process\cite{DBLP:journals/corr/abs-2006-11239} is defined as the reverse Markov chain. 
+    Since the exact reverse posterior $q(x_{t-1}|x_t)$ is intractable, we approximate it using a neural network with parameters $\theta$:
     \begin{equation}
       p_\theta(x_{t-1} | x_t) = \mathcal{N}\left(x_{t-1} ; \mu_\theta(x_t, t), \Sigma_\theta(x_t, t) \right)
     \end{equation}
@@ -123,27 +125,53 @@ style=numeric
     \end{equation}
     where $\epsilon \sim \mathcal{N}(0, \mathbf{I})$ and $\epsilon_\theta$ is a function approximator (e.g., U-Net).
 
+    \subsubsection{Continuous-Time Formulation: SDE}
+    The discrete diffusion process can be generalized to continuous time using Stochastic Differential Equations (SDEs). 
+    The forward process is described by the following It\^{o} SDE\cite{Ito-calculus}:
+    \begin{equation}
+        d\mathbf{x} = \mathbf{f}(\mathbf{x}, t)dt + g(t)d\mathbf{w}
+    \end{equation}
+    where $\mathbf{f}(\cdot, t)$ is the drift coefficient, $g(t)$ is the diffusion coefficient, and $\mathbf{w}$ is a standard Wiener process.
+    
+    Remarkably, the reverse process—generating data from noise—is also a diffusion process governed by the \textit{reverse-time SDE}\cite{ANDERSON1982313}:
+    \begin{equation}
+        d\mathbf{x} = \left[ \mathbf{f}(\mathbf{x}, t) - g(t)^2 \nabla_\mathbf{x} \log p_t(\mathbf{x}) \right] dt + g(t) d\bar{\mathbf{w}}
+    \end{equation}
+    Here, $dt$ represents a negative time step, and $\bar{\mathbf{w}}$ is the Brownian motion in reverse time. 
+    The term $\nabla_\mathbf{x} \log p_t(\mathbf{x})$, known as the \textit{score function}, points towards high-density regions of the data.
+    
+    Therefore, the core task of the diffusion model is to learn a score-based model 
+    $s_\theta(\mathbf{x}, t) \approx \nabla_\mathbf{x} \log p_t(\mathbf{x})$ using a neural network (or PQC in our case), 
+    allowing us to numerically solve the reverse SDE to generate samples from noise.
+
     \subsubsection{Quantum Diffusion Model}
-    While classical diffusion models operate on probability distributions over classical data, Quantum Diffusion Models (QDMs) extend this concept to the Hilbert space of quantum states. The goal is to generate quantum states (density matrices) from a maximally mixed state.
+    While classical diffusion models operate on probability distributions over classical data, 
+    Quantum Diffusion Models (QDMs) extend this concept to the Hilbert space of quantum states. 
+    The goal is to generate quantum states (density matrices) from a maximally mixed state.
 
     \subsubsection{Forward Process: Depolarizing Channel}
-    Instead of adding Gaussian noise, the forward process in QDM is typically modeled as a standard depolarizing channel acting on a density matrix $\rho$. For a system of $n$ qubits with dimension $d=2^n$, the state at step $t$ is given by:
+    Instead of adding Gaussian noise, the forward process in QDM is typically modeled as a standard depolarizing channel acting on a density matrix $\rho$. 
+    For a system of $n$ qubits with dimension $d=2^n$, the state at step $t$ is given by:
     
     \begin{equation}
       \rho_t = \mathcal{E}_t(\rho_{t-1}) = (1 - p_t)\rho_{t-1} + p_t \frac{I}{d}
     \end{equation}
     
     where $p_t \in [0, 1]$ is the depolarization probability (noise schedule). 
-    Similar to the classical case, we can express $\rho_t$ directly from the initial state $\rho_0$. Let $\alpha_t = \prod_{s=1}^t (1 - p_s)$, then:
+    Similar to the classical case, we can express $\rho_t$ directly from the initial state $\rho_0$. 
+    Let $\alpha_t = \prod_{s=1}^t (1 - p_s)$, then:
     
     \begin{equation}
         \rho_t = \alpha_t \rho_0 + (1 - \alpha_t) \frac{I}{d}
     \end{equation}
     
-    As $t \to T$, $\alpha_T \to 0$, and the state converges to the maximally mixed state $\rho_T \approx \frac{I}{d}$, which contains no information about $\rho_0$.
+    As $t \to T$, $\alpha_T \to 0$, and the state converges to the maximally mixed state $\rho_T \approx \frac{I}{d}$, 
+    which contains no information about $\rho_0$.
 
     \subsubsection{Reverse Process: Quantum Denoising}
-    The reverse process aims to restore the quantum state from the noise. This is modeled by a parameterized quantum circuit (PQC), denoted as a unitary operator $U(\theta)$. The discrete reverse step can be approximated as:
+    The reverse process aims to restore the quantum state from the noise. 
+    This is modeled by a parameterized quantum circuit (PQC), denoted as a unitary operator $U(\theta)$. 
+    The discrete reverse step can be approximated as:
     
     \begin{equation}
       \rho_{t-1} \approx \mathcal{D}_\theta(\rho_t, t) = U(\theta_t) \rho_t U^\dagger(\theta_t)
@@ -152,10 +180,12 @@ style=numeric
     For more complex generative tasks, the reverse process may involve ancillary qubits and measurements to simulate non-unitary maps.
 
     \subsubsection{Loss Function: Fidelity or Trace Distance}
-    Unlike the KL divergence used in classical models, quantum models often use Fidelity or Hilbert-Schmidt distance to measure the closeness between the generated state and the target state. A common objective is to maximize the overlap with the target pure state $|\psi\rangle$:
+    Unlike the KL divergence used in classical models, 
+    quantum models often use Fidelity or Hilbert-Schmidt distance to measure the closeness between the generated state and the target state. 
+    A common objective is to maximize the overlap with the target pure state $\ket{\psi}$:
     
     \begin{equation}
-      \mathcal{L}(\theta) = 1 - \mathbb{E} \left[ \langle \psi | \rho_{\text{gen}}(\theta) | \psi \rangle \right]
+      \mathcal{L}(\theta) = 1 - \mathbb{E} \left[ \bra{\psi} \rho_{\text{gen}}(\theta) \ket{\psi} \right]
     \end{equation}
     Alternatively, for density matrices, we minimize the trace distance or maximize the quantum fidelity $F(\rho, \sigma) = (\text{tr}\sqrt{\sqrt{\rho}\sigma\sqrt{\rho}})^2$.
 
