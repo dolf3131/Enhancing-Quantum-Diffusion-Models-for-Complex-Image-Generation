@@ -1,6 +1,7 @@
 \documentclass[12pt]{article}
 \usepackage{fullpage,enumitem,amsmath,amssymb,graphicx}
 \usepackage{braket}
+%\usepackage{indentfirst}
 %\usepackage[hangul]{kotex}
 \usepackage[
 backend=biber,
@@ -190,6 +191,53 @@ style=numeric
     Alternatively, for density matrices, we minimize the trace distance or maximize the quantum fidelity $F(\rho, \sigma) = (\text{tr}\sqrt{\sqrt{\rho}\sigma\sqrt{\rho}})^2$.
 
 
+  \subsection{Quantum Data Encoding}
+  We referred to IBM Quantum Platform, especially Quantum Machine Learning.\cite{Data-encoding}
+    \subsubsection{Basis Encoding}
+    Basis encoding maps a classical $P$-bit string directly to a computational basis state of a $P$-qubit system. 
+    For a single feature represented as binary bits $(b_1, b_2, \dots, b_P)$, the quantum state is:
+    \begin{equation}
+      \ket{x} = \ket{b_1, b_2, \dots, b_P}, \quad b_i \in \{0, 1\}
+    \end{equation}
+
+    \subsubsection{Amplitude Encoding}
+    Amplitude encoding maps a normalized classical $N$-dimensional data vector $\vec{x}$ to the amplitudes of an $n$-qubit quantum state, 
+    where $n = \lceil \log_2 N \rceil$.
+    
+    \begin{equation}
+      \ket{\psi_x} = \frac{1}{\alpha}\sum_{i=1}^N x_i \ket{i}
+    \end{equation}
+    Here, $\ket{i}$ is the computational basis state and $\alpha$ is a normalization constant ensuring $\langle \psi_x | \psi_x \rangle = 1$. 
+    And $\alpha$ is a normalization constant to be determined from the data being encoded.
+
+    \begin{equation}
+      \alpha = \sqrt{\sum_{i=1}^{N}|x_i|^2}
+    \end{equation}
+
+    \subsubsection{Angle Encoding}
+    Angle encoding maps each feature $x_k$ to the rotation angle of a qubit using $R_Y$ gates. 
+    For a data vector $\vec{x}$, the state is a product state:
+    \begin{equation}
+      \ket{\vec{x}} = \bigotimes_{k=1}^N R_Y(x_k)\ket{0} = 
+      \bigotimes_{k=1}^N \left( \cos\left(\frac{x_k}{2}\right)\ket{0} + \sin\left(\frac{x_k}{2}\right)\ket{1} \right)
+    \end{equation} 
+    \subsubsection{Phase Encoding}
+    Phase encoding maps data features to the phase of qubits using Phase gates $P(\phi)$, typically applied after Hadamard gates.
+    \begin{equation}
+      \ket{\vec{x}} = \bigotimes_{k=1}^N P(x_k)\ket{+} = 
+      \frac{1}{\sqrt{2^N}} \bigotimes_{k=1}^N \left( \ket{0} + e^{i x_k}\ket{1} \right)  
+    \end{equation} 
+    
+    \subsubsection{Dense Angle Encoding}
+    Dense angle encoding encodes two features, $x_k$ and $x_l$, into a single qubit using both $Y$-axis and $Z$-axis rotations.
+    \begin{equation}
+      \ket{x_k, x_l} = R_Z(x_l) R_Y(x_k)\ket{0} = \cos\left(\frac{x_k}{2}\right)\ket{0} + e^{i x_l} \sin\left(\frac{x_k}{2}\right)\ket{1} 
+    \end{equation}
+    
+    Extending this to more features, the data vector $\vec{x} = (x_1, ..., x_N)$ can be encoded as:
+    \begin{equation}
+      \ket{\vec{x}} = \bigotimes_{k=1}^{N/2}\left( \cos{x_{2k-1}}\ket{0} + e^{ix_{2k}}\sin{x_{2k-1}\ket{1}} \right)
+    \end{equation}
 
 \section{Implementation}
   \subsection{Architecture}
