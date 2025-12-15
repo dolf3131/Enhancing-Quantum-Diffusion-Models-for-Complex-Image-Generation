@@ -243,7 +243,7 @@ We referred to IBM Quantum Platform, especially Quantum Machine Learning.\cite{D
     \ket{\vec{x}} = \bigotimes_{k=1}^{N/2}\left( \cos{x_{2k-1}}\ket{0} + e^{ix_{2k}}\sin{x_{2k-1}\ket{1}} \right)
   \end{equation}
 
-\section{Architecture}
+\subsection{Architecture}
 The proposed model, illustrated in Figure \ref{fig:architecture}, 
 adopts a hybrid quantum-classical U-Net architecture inspired by recent advances in quantum generative diffusion models\cite{cacioppo2023quantumdiffusionmodels, qdm}. 
 The architecture is designed to leverage the expressivity of quantum circuits while maintaining the reconstruction capability of classical networks. 
@@ -257,16 +257,16 @@ It consists of three distinct modules: a classical encoder, a quantum bottleneck
 \end{figure}
 
 First, the \textbf{Classical Encoder} transforms the input data (flattened vector) into a lower-dimensional latent representation. 
-To seamlessly interface with the quantum layer, we utilize complex-valued linear layers that preserve phase information.
+To seamlessly interface with the quantum layer, we utilize complex-valued linear layers (\texttt{ComplexLinear}) that preserve phase information necessary for quantum state preparation.
 
 Second, the \textbf{Quantum Bottleneck} acts as the core generative component. 
-We employ \textit{amplitude encoding} to efficiently map the classical latent vector $\mathbf{z}$ onto an $n$-qubit quantum state $|\psi\rangle$. 
+We employ \textit{amplitude encoding} to efficiently map the classical latent vector $\mathbf{z}$ onto an $n$-qubit quantum state $|\psi\rangle$ by normalizing the complex vector. 
 This state is evolved by a Parameterized Quantum Circuit (PQC), $U(\theta)$, which learns the reverse diffusion dynamics. 
 The resulting quantum state is then measured to extract quantum features (Q-Feats).
 
 Finally, the \textbf{Classical Decoder} reconstructs the denoised sample from the quantum features. 
-A crucial design element is the inclusion of a \textbf{Skip Connection} (red path in Figure \ref{fig:architecture}).
-This connection concatenates the intermediate features from the encoder directly with the quantum features in the decoder. 
+A crucial design element is the inclusion of a \textbf{Skip Connection} (red path in Figure \ref{fig:architecture}). 
+This connection concatenates the original flattened input vector directly with the quantum features in the decoder. 
 This mechanism is essential for mitigating the "bottleneck" problem inherent in low-qubit quantum circuits and preventing the model from converging to trivial identity mappings by preserving the original signal structure.
 
 \section{Experimental Results}
@@ -274,8 +274,7 @@ This mechanism is essential for mitigating the "bottleneck" problem inherent in 
 We evaluated the proposed Hybrid Quantum U-Net using the MNIST dataset. 
 The training was conducted for 100 epochs, and the model demonstrated stable convergence behavior. 
 As shown in Figure \ref{fig:loss}, the final infidelity loss reached approximately 0.25. 
-Remarkably, the total execution time was only about 3 minutes, 
-highlighting the computational efficiency of our hybrid architecture compared to fully classical counterparts or more complex quantum simulations.
+Remarkably, the total execution time was only about 3 minutes, highlighting the computational efficiency of our hybrid architecture compared to fully classical counterparts or more complex quantum simulations.
 
 \begin{figure}[htbp]
   \centering
@@ -319,9 +318,7 @@ The generation results are presented in Figure \ref{fig:gen}.
 
 As observed in Figure \ref{fig:trial1}, the model successfully generates distinct and sharp images when trained on binary classes. 
 However, as the complexity increases to include all ten digits (Figure \ref{fig:trial2}), the generated samples exhibit ambiguous shapes and blurring. 
-This suggests that while the current quantum bottleneck is efficient, 
-its limited Hilbert space (number of qubits) constrains the expressibility required to fully capture the complex multimodal distribution of the entire dataset.
-
+This suggests that while the current quantum bottleneck is efficient, its limited Hilbert space (number of qubits) constrains the expressibility required to fully capture the complex multimodal distribution of the entire dataset.
 
 
 \section{Conclusion}
