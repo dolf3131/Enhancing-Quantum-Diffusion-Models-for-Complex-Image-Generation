@@ -2378,6 +2378,8 @@
     <bcf:citekey order="4" intorder="1">Ito-calculus</bcf:citekey>
     <bcf:citekey order="5" intorder="1">ANDERSON1982313</bcf:citekey>
     <bcf:citekey order="6" intorder="1">Data-encoding</bcf:citekey>
+    <bcf:citekey order="7" intorder="1">cacioppo2023quantumdiffusionmodels</bcf:citekey>
+    <bcf:citekey order="7" intorder="2">qdm</bcf:citekey>
   </bcf:section>
   <!-- SORTING TEMPLATES -->
   <bcf:sortingtemplate name="nty">
