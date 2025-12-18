@@ -332,6 +332,48 @@ This suggests that while the current quantum bottleneck is efficient, its limite
 
 
 \section{Conclusion}
+In this study, we proposed a \textbf{Hybrid Quantum-Classical U-Net} architecture 
+for complex image generation and validated its effectiveness using the MNIST dataset. 
+The experimental results demonstrated that the proposed model exhibits significant generative capabilities with a reduced number of parameters, confirming the potential of hybrid structures in the NISQ era. 
+The key insights gained, technical challenges faced, and our current research direction are summarized below.
+
+\subsection*{Key Insights and Learnings}
+\begin{itemize}
+    \item \textbf{Structural Efficiency:} 
+    Through code implementation (\texttt{QuantumUNet}), we verified that the `Quantum Bottleneck' architecture—which compresses features via a classical encoder before mapping them to a quantum state is significantly more efficient than encoding the entire high-dimensional image directly into qubits.
+    \item \textbf{Importance of Skip Connections:} 
+    We discovered that \textbf{Skip Connections}, which combine original classical features with quantum features in the decoder stage, are critical. Without them, the information loss inherent in the quantum circuit significantly degrades image sharpness. 
+    This highlights that preserving the \textbf{Classical Path} is essential for maintaining reconstruction quality in hybrid models.
+\end{itemize}
+
+\subsection*{Technical Challenges}
+\begin{itemize}
+    \item \textbf{Simulation Overhead (Running Speed):} 
+    A major practical barrier was the \textbf{ML running speed}. Simulating quantum circuits (especially tensor product operations for entanglement) on classical hardware incurs massive computational costs. 
+    This overhead severely constrained our ability to scale up the number of qubits and circuit depth within a reasonable training time.
+    \item \textbf{Barren Plateaus \& Optimization Landscape:} 
+    Beyond computational speed, we faced the fundamental challenge of \textbf{Barren Plateaus}. 
+    The standard Adam optimizer struggled to navigate the flat loss landscapes typical of parameterized quantum circuits (PQCs). 
+    This often led to stagnation or convergence to local minima, particularly when attempting to learn the complex multi-modal distributions of the multi-class MNIST dataset.
+\end{itemize}
+
+\subsection*{Current Status: Enhancing Optimization with QNGD}
+To address these optimization challenges and ensure convergence stability, we are currently implementing \textbf{Quantum Natural Gradient Descent (QNGD)}.
+
+\begin{itemize}
+    \item \textbf{Addressing the Optimization Geometry:} 
+    Standard optimizers like Adam assume a Euclidean parameter space, which is ill-suited for the quantum state space that follows Riemannian geometry. 
+    We are adopting QNGD to adjust the gradient direction by incorporating the \textbf{Fubini-Study Metric Tensor} ($g_{ij}$), which represents the curvature of the quantum information geometry. 
+    The update rule is defined as:
+    \begin{equation}
+        \theta_{t+1} = \theta_t - \eta g^{-1}(\theta_t) \nabla \mathcal{L}(\theta_t)
+    \end{equation}
+    where $\eta$ is the learning rate and $g^{-1}(\theta_t)$ corrects the gradient based on the local curvature.
+    
+    \item \textbf{Quality over Speed (Trade-off):} We acknowledge that calculating the metric tensor increases the computational cost per step, potentially lengthening the wall-clock training time. 
+    However, we accept this trade-off to \textbf{mitigate Barren Plateaus} and achieve higher \textbf{Fidelity} with fewer training epochs. 
+    Our focus has shifted from raw simulation speed to \textbf{`Optimization Efficiency'}, aiming to overcome the expressivity and convergence limitations of the current model.
+\end{itemize}
 
 
 \printbibliography
