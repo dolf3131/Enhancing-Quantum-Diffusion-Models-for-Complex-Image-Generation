@@ -1,0 +1,402 @@
+%  This is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%
+%  This is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%
+%  You can find the GNU General Public License at <http://www.gnu.org/licenses/>.
+
+%  !TEX bib_program = biber
+\documentclass[a1paper,portrait]{baposter}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Language, Encoding and Fonts
+% http://en.wikibooks.org/wiki/LaTeX/Internationalization
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Select encoding of your inputs. Depends on
+% your operating system and its default input
+% encoding. Typically, you should use
+%   Linux  : utf8 (most modern Linux distributions)
+%            latin1 
+%   Windows: ansinew
+%            latin1 (works in most cases)
+%   Mac    : applemac
+% Notice that you can manually change the input
+% encoding of your files by selecting "save as"
+% an select the desired input encoding. 
+\usepackage[utf8]{inputenc}
+\usepackage[hangul]{kotex}
+\usepackage{csquotes}
+% Make latex understand and use the typographic
+% rules of the language used in the document.
+\usepackage[english]{babel}
+% Use the vector font Latin Modern which is going
+% to be the default font in latex in the future.
+\usepackage{helvet}
+% Change the default font family from roman to sans serif
+\renewcommand{\familydefault}{\sfdefault} % for text
+\usepackage[helvet]{sfmath} % for math
+% Choose the font encoding
+\usepackage[T1]{fontenc}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Graphics and Tables
+% http://en.wikibooks.org/wiki/LaTeX/Importing_Graphics
+% http://en.wikibooks.org/wiki/LaTeX/Tables
+% http://pgfplots.sourceforge.net/
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% You cannot use floats in the baposter theme.
+% We therefore load the caption package which provides
+% the command \captionof
+% Set up how figure and table captions are displayed
+\usepackage{caption}
+\captionsetup{
+  font=small,% set font size to footnotesize
+  labelfont=bf % bold label (e.g., Figure 3.2) font
+}
+% Make the standard latex tables look so much better
+\usepackage{array,booktabs}
+% For creating beautiful plots
+\usepackage{pgfplots}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Mathematics
+% http://en.wikibooks.org/wiki/LaTeX/Mathematics
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Defines new environments such as equation,
+% align and split 
+\usepackage{amsmath}
+% Adds new math symbols
+\usepackage{amssymb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Colours
+% http://en.wikibooks.org/wiki/LaTeX/Colors
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\selectcolormodel{RGB}
+% define the three blue colors
+\definecolor{nustblue}{RGB}{0,70,120}% dark blue
+\definecolor{nustblue1}{RGB}{112,110,140} % light blue
+\definecolor{nustblue2}{RGB}{190,190,200} % lighter blue
+\definecolor{nustblue3}{RGB}{100,100,255}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Lists
+% http://en.wikibooks.org/wiki/LaTeX/List_Structures
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Easier configuration of lists
+\usepackage{enumitem}
+%configure itemize
+\setlist{%
+  topsep=0pt,% set space before and after list
+  noitemsep,% remove space between items
+  labelindent=\parindent,% set the label indentation to the paragraph indentation
+  leftmargin=*,% remove the left margin
+  font=\color{nustblue}\normalfont, %set the colour of all bullets, numbers and descriptions to nustblue
+}
+% use set<itemize,enumerate,description> if you have an older latex distribution
+\setitemize[1]{label={\raise1.25pt\hbox{$\blacktriangleright$}}}
+\setitemize[2]{label={\scriptsize\raise1.25pt\hbox{$\blacktriangleright$}}}
+\setitemize[3]{label={\raise1.25pt\hbox{$\star$}}}
+\setitemize[4]{label={-}}
+%\setenumerate[1]{label={\theenumi.}}
+%\setenumerate[2]{label={(\theenumii)}}
+%\setenumerate[3]{label={\theenumiii.}}
+%\setenumerate[4]{label={\theenumiv.}}
+%\setdescription{font=\color{nustblue}\normalfont\bfseries}
+
+% use setlist[<itemize,enumerate,description>,<level>] if you have a newer latex distribution
+%\setlist[itemize,1]{label={\raise1.25pt\hbox{$\blacktriangleright$}}}
+%\setlist[itemize,2]{label={\scriptsize\raise1.25pt\hbox{$\blacktriangleright$}}}
+%\setlist[itemize,3]{label={\raise1.25pt\hbox{$\star$}}}
+%\setlist[itemize,4]{label={-}}
+%\setlist[enumerate,1]{label={\theenumi.}}
+%\setlist[enumerate,2]{label={(\theenumii)}}
+%\setlist[enumerate,3]{label={\theenumiii.}}
+%\setlist[enumerate,4]{label={\theenumiv.}}
+%\setlist[description]{font=\color{nustblue}\normalfont\bfseries}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Misc
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% change/remove some names
+\addto{\captionsenglish}{
+  %remove the title of the bibliograhpy
+  \renewcommand{\refname}{\vspace{-0.7em}}
+  %change Figure to Fig. in figure captions
+  \renewcommand{\figurename}{Fig.}
+}
+% create links
+\usepackage{url}
+%note that the hyperref package is currently incompatible with the baposter class
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Macros
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\alert}[1]{{\color{nustblue}#1}}
+
+
+
+
+\usepackage[backend=biber,style=numeric,url=true]{biblatex}
+\addbibresource{bibliography.bib}
+\defbibheading{none}{}  % no name
+
+\usepackage{braket}
+
+\usepackage{graphicx}
+\usepackage{tikz}
+
+
+\usepackage{setspace}
+\setstretch{1.12}
+\setlength{\parskip}{0pt}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Document Start 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\pgfplotsset{compat=1.18}
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Some changes that cannot be made in the preamble
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% set the background of the poster
+\background{
+  \begin{tikzpicture}[remember picture,overlay]%
+    %the poster background color
+    \fill[fill=nustblue2] (current page.north west) rectangle (current page.south east);
+    %the header
+    \fill [fill=nustblue] (current page.north west) rectangle ([yshift=-\headerheight] current page.north east);
+  \end{tikzpicture}
+}
+% if you want to reduce the space before and after equations, use and adjust
+% the following lines
+%\addtolength{\abovedisplayskip}{-2mm}
+%\addtolength{\belowdisplayskip}{-2mm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% General poster setup
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{poster}{
+  %general options for the poster
+  grid=false,
+  columns=3,
+%  colspacing=4.2mm,
+  headerheight=0.1\textheight,
+  background=none,
+%  bgColorOne=red!42, %is used when background != user and none
+%  bgColortwo=green!42, %is used when background is shaded
+  eyecatcher=true,
+  %posterbox options
+  headerborder=closed,
+  borderColor=nustblue,
+  headershape=rectangle,
+  headershade=plain,
+  headerColorOne=nustblue,
+%  headerColortwo=yellow!42, %is used when the header background is shaded
+  textborder=rectangle,
+  boxshade=plain,
+  boxColorOne=white,
+%  boxColorTwo=cyan!42,%is used when the text background is shaded
+  headerFontColor=white,
+  headerfont=\Large\sf\bf,
+  linewidth=1pt
+}
+%the Eye Catcher (the logo on the left)
+{
+  %this can be commented out or replaced by a company/department logo
+  \includegraphics[height=0.70\headerheight]{logos/Yonsei_physics_x4up.png}
+}
+%the poster title
+{\color{nustblue}\bf
+  25-1 QIYA IBM Learning Course
+}
+%the author(s)
+{\small
+  \vspace{1em} Student, Jeongbin Jo\\
+  Dept.\ of Physics, College of Science, Yonsei Unversity \\
+  milk\_lime@naver.com (jeongbin033@yonsei.ac.kr)
+}
+%the logo (the logo on the right)
+{
+  %this can be commented out or replaced by a conference logo
+  \includegraphics[height=0.75\headerheight]{logos/QIYA_logo1.PNG}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% the actual content of the poster begins here
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{posterbox}[name=intro,column=0,row=0]{Introduction}
+\begin{itemize}
+  \item This poster presents the results of the 2025-1 QIYA (Quantum Informatics at Yonsei Academy) IBM Learning Course team project.
+  \item  We explored quantum computing topics such as VQA, VQE, VQD, QML, and QSR, based on materials from the \alert{IBM Learning Course}\cite{IBM}.
+  \item This poster highlights our implementation of variational quantum algorithms (VQAs) and explores advanced techniques such as Quantum Fisher Information analysis, Quantum Sampling Regression using Gaussian Processes, and surrogate-based optimization.
+  \item The full source code and results are available on our \alert{GitHub} repository.
+\end{itemize}
+\end{posterbox}
+
+\begin{posterbox}[name=vqa,column=0,below=intro]{Variational Quantum Algorithm}
+\begin{itemize}
+    \item \textbf{Variational Quantum Algorithm (VQA)} is a hybrid approach that combines classical and quantum computing using variational methods.
+    \item The typical workflow of a VQA includes the following steps:
+    \begin{description}
+        \item[step 1] \textbf{Initialize the problem}
+        \item[step 2] \textbf{Prepare the ansatz} 
+        \begin{equation}
+        \begin{aligned}
+            \ket{0} \xrightarrow{U_R} U_R \ket{0} &= \ket{\rho} \xrightarrow{U_V(\vec{\theta})} U_A(\vec{\theta}) \ket{0} \\
+            &= U_V(\vec{\theta}) U_R \ket{0} \\
+            &= U_V(\vec{\theta}) \ket{\rho} \\
+            &= \ket{\psi(\vec{\theta})}
+        \end{aligned}
+        \end{equation}
+        \item[step 3] \textbf{Evaluate cost function} 
+        \begin{equation}
+            \braket{\hat{\mathcal{H}}}_\psi := \sum_{\lambda} p_\lambda \lambda = \bra{\psi} \hat{\mathcal{H}} \ket{\psi}
+        \end{equation}
+        \item[step 4] \textbf{Optimize the parameters to obtain results}
+        \begin{equation}
+            \vec{\boldsymbol{\theta}}_{t+1} = \vec{\boldsymbol{\theta}}_t - \eta \, \nabla \mathcal{C}(\boldsymbol{\vec\theta})
+        \end{equation}
+    \end{description}
+\end{itemize}
+\end{posterbox}
+
+\begin{posterbox}[name=qfim,column=0,below=vqa,above=bottom]{Quantum Fisher Information}
+\begin{itemize}
+    \item The \textbf{Quantum Fisher Information Matrix (QFIM)}\cite{meyer2021fisher} is the quantum counterpart of the classical Fisher information matrix. It quantifies how much information an observable random variable \(X\) carries about an unknown parameter \(\theta\) in the distribution that models \(X\).
+    \begin{multline}
+        \mathcal{F}_{ij} = 4\,\mathrm{Re} \Big[\braket{\partial_i \psi(\boldsymbol{\theta}) | \partial_j \psi(\boldsymbol{\theta})} \\
+        - \braket{\partial_i \psi(\boldsymbol{\theta}) | \psi(\boldsymbol{\theta})} \braket{\psi(\boldsymbol{\theta}) | \partial_j \psi(\boldsymbol{\theta})} \Big]
+    \end{multline}
+    
+    \item \textbf{FAdam}\cite{hwang2024fadam} is an optimizer based on the Fisher information, often referred to as the natural gradient. In this project, we investigated a quantum version of FAdam.
+    \begin{equation}
+        \vec{\boldsymbol{\theta}}_{t+1} = \vec{\boldsymbol{\theta}}_t - \eta \, \mathbf{F}^{-1} \nabla \mathcal{L}(\boldsymbol{\theta})
+    \end{equation}
+\end{itemize}
+\end{posterbox}
+
+
+\begin{posterbox}[name=implement,span=2,column=1,row=0]{Implementation}
+\begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=north east, xshift=-1cm, yshift=-5.5cm] at (current page.north east) {
+        \includegraphics[width=2cm]{images/qr.png} %QR 넣기
+    };
+\end{tikzpicture}
+We implemented a variational eigensolver using the \alert{Quantum Sampling Regression (QSR)} framework in combination with a \alert{Gaussian process-based surrogate model}.
+\begin{description}
+    \item[Ansatz] \texttt{TwoLocal(ry, entanglement=cz)}
+    \item[Observable] Arbitrary Hermitian operator
+    \item[Sampling] Sobol sequence (quasi-random sampling)
+    \item[Surrogate] Gaussian process regression
+\end{description}
+\end{posterbox}
+
+\begin{posterbox}[name=qsr,column=1,below=implement]{Quantum Sampling Regression}
+\begin{itemize}
+    \item \textbf{Quantum Sampling Regression (QSR)}\cite{rivero2020} is a variational algorithm that approximates a reference function using sampled parameter values.
+    
+    \item As the number of variational parameters increases, the number of required samples grows exponentially. Therefore, QSR is generally not efficient when used with high-dimensional ansätze.
+    
+    \item For sampling, we use \textbf{Sobol sequences}\cite{Sobol}, which are a type of quasi-random low-discrepancy sequence.
+\end{itemize}
+
+\begin{center}
+    \begin{minipage}[t]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/pseudorandom.png}
+        \captionof{figure}{Pseudorandom}
+        \label{fig:pseudo}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.48\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{images/sobol.png}
+        \captionof{figure}{Sobol sequence (quasi-random)}
+        \label{fig:sobol}
+    \end{minipage}
+\end{center}
+\end{posterbox}
+
+
+\begin{posterbox}[name=gaussian,column=1,below=qsr, above=bottom]{Gaussian Process}
+\begin{itemize}
+    \item A \textbf{Gaussian Process (GP)}\cite{gaussian} is a nonparametric supervised learning method commonly used for \alert{regression} and \alert{probabilistic classification} tasks.
+
+    \item A GP defines a distribution over functions, assuming that any finite set of function values follows a multivariate normal distribution. This makes GPs useful for modeling uncertainty and performing function approximation, especially with limited data.
+
+    \begin{equation}
+    \mathbb{E} \left[ e^{i \mathbf{s}^T (\mathbf{X} - \boldsymbol{\mu})} \right] = e^{- \frac{1}{2} \mathbf{s}^T \boldsymbol{\Sigma} \mathbf{s}}
+    \end{equation}
+
+    \begin{description}
+        \item[$\mathbf{X} \sim \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$] Multivariate normal distribution (vector form)
+        \item[$\boldsymbol{\Sigma}$] Covariance matrix
+        \item[$\mathbf{s} \in \mathbb{R}^n$] Coefficient vector
+    \end{description}
+\end{itemize}
+
+\begin{center}
+    \centering
+    \includegraphics[width=0.85\linewidth]{images/image.png}
+    \captionof{figure}{Gaussian process}
+    \label{fig:gaussian}
+\end{center}
+\end{posterbox}
+
+
+
+\begin{posterbox}[name=result,column=2,below=implement]{Result}
+    \begin{itemize}
+        \item In terms of computational cost, the surrogate model is significantly cheaper than direct quantum evaluations in the NISQ era. Only a single quantum computation of steady-state observables is required, after which the surrogate model can be reused.
+
+        \item The number of required samples when using Sobol sequences is a power of 2, i.e., $2^{\text{param}}$, where \textit{param} denotes the number of parameters. However, achieving higher resolution may require even more samples.
+    \end{itemize}
+\end{posterbox}
+
+\begin{posterbox}[name=post,column=2,below=result]{Post Project}
+    QFIM-based sensitivity analysis, natural gradient optimization.  
+    Diffusion-inspired error-aware learning using inherent NISQ noise.  
+    Toward noise-leveraged quantum error mitigation.
+\end{posterbox}
+
+\begin{posterbox}[name=refs,column=2,below=post]{References}
+
+\begingroup
+\setlength\bibitemsep{0.2em}                 % 항목 간 간격 줄이기
+\setlength\baselineskip{0.4\baselineskip}   % 전체 줄 간격 줄이기
+\renewcommand*{\bibfont}{\small}             % 글자 크기도 소형화
+\printbibliography[heading=none]
+\endgroup
+
+\end{posterbox}
+
+\begin{posterbox}[name=badge,column=2,below=refs,above=bottom]{Certificate}
+\begin{tikzpicture}
+    % 첫 번째 그림 (가장 아래, 가장 왼쪽)
+    \node[anchor=north west] at (0, 0.0)
+        {\includegraphics[width=0.45\linewidth]{certifications/basics-of-quantum-information.png}};
+
+    % 두 번째 그림 (조금 오른쪽 위)
+    \node[anchor=north west] at (1.333, 0.15)
+        {\includegraphics[width=0.45\linewidth]{certifications/fundamentals-of-quantum-algorithms.png}};
+
+    % 세 번째 그림 (더 오른쪽 위)
+    \node[anchor=north west] at (2.666, 0.3)
+        {\includegraphics[width=0.45\linewidth]{certifications/quantum-machine-learning.png}};
+
+    % 네 번째 그림 (가장 오른쪽, 가장 위)
+    \node[anchor=north west] at (4.0, 0.45)
+        {\includegraphics[width=0.45\linewidth]{certifications/variational-algorithm-design.png}};
+\end{tikzpicture}
+\end{posterbox}
+
+
+
+\end{poster}
+\end{document}
