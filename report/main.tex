@@ -47,6 +47,13 @@ style=numeric
 %\newcommand{\pref}[1]{(\ref{#1})}
 \begin{document}
 \maketitle
+\begin{abstract}
+  In this study, we propose a Hybrid Quantum-Classical U-Net architecture designed for complex image generation, 
+  specifically targeting the challenges of the NISQ era. By integrating a classical encoder-decoder structure with a Quantum Bottleneck, 
+  the model leverages the expressivity of quantum circuits while maintaining structural efficiency. 
+  The architecture employs Skip Connections to preserve semantic information, which is critical for maintaining image sharpness.
+\end{abstract}
+
 \tableofcontents
 \begin{center}
 
@@ -60,6 +67,9 @@ style=numeric
 
 \noindent
 \rule{\linewidth}{0.4pt}
+
+
+
   
 \section{Intrduction}
   \subsection{What’s the potential benefit of replacing neural network with PQCs?}
