@@ -35,15 +35,16 @@ class ComplexLinear(nn.Module):
         if self.activation:
             out = self.act_fn(out)
         return out
+    
+
 
 class WeightProbe:
     """
     Dummy class to probe maximum index accessed in weights tensor.
-    Used for estimating number of parameters needed without actual values.
     """
     def __init__(self, parent=None, offset=0):
-        self.max_idx = -1 # Track maximum index accessed
-        self.parent = parent  # 원본 Probe를 기억함 (분신인 경우)
+        self.max_idx = -1 
+        self.parent = parent
         self.offset = offset
 
     def __getitem__(self, key):
@@ -53,24 +54,23 @@ class WeightProbe:
                 self.parent.report_idx(current_idx)
             else:
                 self.report_idx(current_idx)
-            return 0.1 # 
+            # PennyLane 게이트들이 float 입력을 기대하므로 더미 값 0.1 반환
+            return 0.1 
         
         elif isinstance(key, slice):
             start = key.start if key.start is not None else 0
-            # [핵심] 새로운 '분신 Probe'를 만들어서 반환!
-            # 이 분신은 값을 꺼낼 때마다 원본(self)에게 위치를 보고함
+            # 슬라이싱이 들어오면 오프셋을 조정한 새로운 Probe 반환
             return WeightProbe(parent=(self.parent if self.parent else self), 
                                offset=self.offset + start)
             
     def report_idx(self, idx):
-        """인덱스 갱신 (가장 큰 인덱스 기억)"""
         self.max_idx = max(self.max_idx, idx)
 
     @property
     def shape(self):
-        return (1000,)
+        # 넉넉한 크기로 속여서 에러 방지
+        return (10000,)
     
-
 
 def ConvUnit(params, wires):
     """
@@ -78,7 +78,7 @@ def ConvUnit(params, wires):
     Args:
         params: Flat tensor containing all parameters
         wires: [control, target]
-    Returns:
+    returns:
         Updated param_idx
     """
     idx = 0
@@ -110,14 +110,21 @@ def MixingBlock_U3(params, wires):
     for i in range(n):
         qml.U3(params[idx], params[idx+1], params[idx+2], wires=wires[i])
         idx += 3
-    # 2. Entangling Layers
-    # Even pairs
+    # 2. Entangling Layers - ring
     for i in range(0, n-1, 2):
         qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-
-    # Odd pairs
-    for i in range(1, n, 2):
+    for i in range(1, n-1, 2):
         qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
+        
+    return idx
+
+def PhaseMixing(params, wires):
+    n = len(wires)
+    idx = 0
+    for i in range(n-1, 0, -1):
+        qml.CRZ(params[idx], wires=[wires[0], wires[i]])
+        idx += 1
+    qml.QFT(wires=range(n-1))
     return idx
 
 def MixingBlock(params, wires):
@@ -139,13 +146,13 @@ def MixingBlock(params, wires):
         qml.RZ(params[idx], wires=wires[(i+1)%n])
         qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
         idx += 1
-
-    # Odd pairs
-    for i in range(1, n, 2):
+    for i in range(1, n-1, 2):
         qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
         qml.RZ(params[idx], wires=wires[(i+1)%n])
         qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
         idx += 1
+
+    
     return idx
 
 
@@ -159,9 +166,15 @@ class PennyLanePQC(nn.Module):
             self.act_func = ComplexLeakyReLU()
         
         # Block 1 & 3 (N qubits)
-        self.params_per_rep = self._count_params_per_rep(num_qubits)
-        self.params_per_block = self.params_per_rep * reps
-        self.total_params = self.params_per_block * 3
+        self.params_per_rep_n = self._count_params_per_rep(num_qubits)
+        # Block 2 (N+1 qubits)
+        self.params_per_rep_ancilla = self._count_params_per_rep(num_qubits + 1)
+        
+        self.len_block_n = self.params_per_rep_n * reps
+        self.len_block_ancilla = self.params_per_rep_ancilla * reps
+
+        # Total = Block1(N) + Block2(N+1) + Block3(N)
+        self.total_params = self.len_block_n + self.len_block_ancilla + self.len_block_n
 
         print(f"[Auto-Config] Total params to learn: {self.total_params}")
 
@@ -186,45 +199,39 @@ class PennyLanePQC(nn.Module):
         ptr = 0
         
         # 1. Conv Even (3 params -> or 9 params)
-        # n_conv = 3 # IsingZZ 등으로 바꾸면 이 숫자만 9로 변경 등
-        # for i in range(0, n_wires-1, 2):
-        #     ConvUnit(layer_params[ptr:ptr+n_conv], wires=[wires[i], wires[(i+1)%n_wires]])
-        #     ptr += n_conv
+        n_conv = 3 # IsingZZ 등으로 바꾸면 이 숫자만 9로 변경 등
+        for i in range(0, n_wires-1, 2):
+            ConvUnit(layer_params[ptr:], wires=[wires[i], wires[(i+1)%n_wires]])
+            ptr += n_conv
         
-        # # 2. Conv Odd
-        # for i in range(1, n_wires, 2):
-        #     ConvUnit(layer_params[ptr:ptr+n_conv], wires=[wires[i], wires[(i+1)%n_wires]])
-        #     ptr += n_conv
+        # 2. Conv Odd
+        for i in range(1, n_wires, 2):
+            ConvUnit(layer_params[ptr:], wires=[wires[i], wires[(i+1)%n_wires]])
+            ptr += n_conv
+
+        ptr += PhaseMixing(layer_params[ptr:], wires=wires)
 
             
         # 3. Mixing
-        ptr += MixingBlock_U3(layer_params[ptr:], wires=wires)
+        ptr += MixingBlock(layer_params[ptr:], wires=wires)
         
         
 
     def _count_params_per_rep(self, n_wires):
         """
-        Estimate number of parameters per repetition using WeightProbe.
-        Args:
-            n_wires: Number of qubits (wires)
-        Returns:
-            total_params: Estimated number of parameters per repetition
         """
         probe = WeightProbe()
         wires = range(n_wires)
-      
-        try:
-            idx = 0
-            self._layer_ansatz(probe, wires)
-            
-        except Exception as e:
-            pass
+        
+        # 실제 회로 구성 함수를 돌려서 파라미터가 몇 개 쓰이는지 체크
+        self._layer_ansatz(probe, wires)
             
         return probe.max_idx + 1
 
     def _circuit_ansatz(self, weights, wires):
-        """실제 실행용 (파라미터 카운팅 로직과 구조 동일해야 함)"""
-        # weights shape: (reps, params_per_rep)
+        """
+        weights shape: (reps, params_per_rep) 
+        """
         for d in range(self.reps):
             self._layer_ansatz(weights[d], wires)
             
@@ -245,7 +252,7 @@ class PennyLanePQC(nn.Module):
             qml.StatePrep(inputs, wires=range(n_wires))
             self._circuit_ansatz(weights, range(n_wires))
             # UNet의 decoder 입력 차원(N)에 맞추기 위해 PauliZ 측정
-            return [qml.expval(qml.PauliZ(i)) for i in range(n_wires)]
+            return [qml.expval(qml.PauliZ(i)) for i in range(n_wires)] + [qml.expval(qml.PauliY(i)) for i in range(n_wires)] + [qml.expval(qml.PauliX(i)) for i in range(n_wires)]
         return circuit
 
     def forward(self, input_state_or_latent, all_weights):
@@ -255,11 +262,23 @@ class PennyLanePQC(nn.Module):
             all_weights: (Total Params,) 
         """
         
-        p_len = self.params_per_block
+        batch_size = input_state_or_latent.shape[0]
+
+        end1 = self.len_block_n
+        w1 = all_weights[:, :end1]
         
-        w1 = all_weights[:, :p_len]
-        w2 = all_weights[:, p_len:2*p_len]
-        w3 = all_weights[:, 2*p_len:]
+        # w2: Ancilla Block (N+1)
+        end2 = end1 + self.len_block_ancilla
+        w2 = all_weights[:, end1:end2]
+        
+        # w3: Data Block (N)
+        w3 = all_weights[:, end2:]
+
+        # Reshape & Transpose (Batch, Reps*Params) -> (Reps, Params, Batch)
+        # 여기서 각 블록에 맞는 params_per_rep을 사용해야 합니다.
+        w1 = w1.reshape(batch_size, self.reps, self.params_per_rep_n).permute(1, 2, 0)
+        w2 = w2.reshape(batch_size, self.reps, self.params_per_rep_ancilla).permute(1, 2, 0)
+        w3 = w3.reshape(batch_size, self.reps, self.params_per_rep_n).permute(1, 2, 0)
 
         # --- 1. Block 1 (Data Qubits) ---
         # input shape: (Batch, 2^N) -> Output: (Batch, 2^N)
@@ -343,7 +362,8 @@ class QuantumUNet(nn.Module):
         # --- [3] Decoder ---
         # Input: PQC Output (bottleneck_qubits) + Skip Connection (input_flat_dim)
         # PQC output size is typically 'bottleneck_qubits' (measurements)
-        self.dec1 = nn.Linear(bottleneck_qubits + self.input_flat_dim, hidden_dim)
+        self.pqc_output_dim = 3*bottleneck_qubits
+        self.dec1 = nn.Linear(self.pqc_output_dim + self.input_flat_dim, hidden_dim)
         self.act_dec1 = nn.ReLU()
         
         self.final = nn.Linear(hidden_dim, self.input_flat_dim)

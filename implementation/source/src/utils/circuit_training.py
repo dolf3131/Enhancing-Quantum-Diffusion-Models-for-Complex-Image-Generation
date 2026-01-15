@@ -141,15 +141,14 @@ def training(path, config, data_length):
             input_batch = assemble_input(image_batch, t, alphas_bar).to(torch.complex64)
             mu_tilde_t  = assemble_mu_tilde(image_batch, input_batch, t, alphas_bar, betas).to(torch.complex64)
 
-            # selected t
-            
 
             # Normalize Quantum States
             eps = 1e-8
             input_batch = input_batch / (torch.norm(input_batch.abs(), p=2, dim=-1, keepdim=True) + eps)
             mu_tilde_t  = mu_tilde_t / (torch.norm(mu_tilde_t.abs(), p=2, dim=-1, keepdim=True) + eps)
 
-            # --- Forward Pass (Qiskit Circuit) ---
+
+            # --- Forward Pass (Circuit) ---
             predicted_mu_t = circuit(input_batch, t)
 
             # --- Loss Calculation ---
@@ -161,7 +160,7 @@ def training(path, config, data_length):
             diff_loss = torch.mean(losses)
             loss = diff_loss
             loss.backward()
-            #torch.nn.utils.clip_grad_norm_(circuit.parameters(), max_norm=1.0)
+            #torch.nn.utils.clip_grad_norm_(circuit.parameters(), max_norm=1.0
             optimizer.step()
             
             # Update Progress Bar
@@ -191,7 +190,6 @@ def training(path, config, data_length):
                 bottleneck_qubits=bottleneck_qubits,
                 num_samples=16
             )
-
         # Check Best Loss
         epoch_mean_loss = float(np.mean(epoch_losses))
         writer.add_scalar('Loss/epoch_mean', epoch_mean_loss, epoch)

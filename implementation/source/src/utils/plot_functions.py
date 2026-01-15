@@ -86,6 +86,7 @@ def log_generated_samples(
     Updated for Qiskit-based QuantumUNet.
     """
     dim = 2 ** num_qubits
+    
     side = int(math.isqrt(dim))
     if side * side != dim:
         # Cannot reshape to an image grid (e.g., if num_qubits is odd)
