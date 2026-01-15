@@ -3,22 +3,6 @@ import torch.nn as nn
 import pennylane as qml
 import numpy as np
 
-
-# Qiskit Imports
-from qiskit import QuantumCircuit
-from qiskit.quantum_info import SparsePauliOp
-from qiskit.circuit.library import RealAmplitudes, ZZFeatureMap
-
-from qiskit_aer.primitives import EstimatorV2 as AerEstimator
-from qiskit_aer import AerSimulator
-from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
-
-from qiskit_machine_learning.neural_networks import EstimatorQNN
-from qiskit_machine_learning.connectors import TorchConnector
-
-backend_sim = AerSimulator()
-pm = generate_preset_pass_manager(target=backend_sim.target, optimization_level=3, seed_transpiler=42)
-
 # PennyLane
 import pennylane as qml
 
@@ -52,6 +36,41 @@ class ComplexLinear(nn.Module):
             out = self.act_fn(out)
         return out
 
+class WeightProbe:
+    """
+    Dummy class to probe maximum index accessed in weights tensor.
+    Used for estimating number of parameters needed without actual values.
+    """
+    def __init__(self, parent=None, offset=0):
+        self.max_idx = -1 # Track maximum index accessed
+        self.parent = parent  # 원본 Probe를 기억함 (분신인 경우)
+        self.offset = offset
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            current_idx = self.offset + key
+            if self.parent:
+                self.parent.report_idx(current_idx)
+            else:
+                self.report_idx(current_idx)
+            return 0.1 # 
+        
+        elif isinstance(key, slice):
+            start = key.start if key.start is not None else 0
+            # [핵심] 새로운 '분신 Probe'를 만들어서 반환!
+            # 이 분신은 값을 꺼낼 때마다 원본(self)에게 위치를 보고함
+            return WeightProbe(parent=(self.parent if self.parent else self), 
+                               offset=self.offset + start)
+            
+    def report_idx(self, idx):
+        """인덱스 갱신 (가장 큰 인덱스 기억)"""
+        self.max_idx = max(self.max_idx, idx)
+
+    @property
+    def shape(self):
+        return (1000,)
+    
+
 
 def ConvUnit(params, wires):
     """
@@ -59,68 +78,92 @@ def ConvUnit(params, wires):
     Args:
         params: Flat tensor containing all parameters
         wires: [control, target]
-        param_idx: Current index pointer in params
     Returns:
         Updated param_idx
     """
-    param_idx = 0
+    idx = 0
     
     qml.RZ(-np.pi/2, wires=wires[1])
     qml.CNOT(wires=[wires[1], wires[0]])
     
-    qml.RZ(params[param_idx], wires=wires[0]); param_idx += 1
-    qml.RY(params[param_idx], wires=wires[1]); param_idx += 1
+    qml.RZ(params[idx], wires=wires[0]); idx += 1
+    qml.RY(params[idx], wires=wires[1]); idx += 1
     
     qml.CNOT(wires=[wires[0], wires[1]])
     
-    qml.RY(params[param_idx], wires=wires[1]); param_idx += 1
+    qml.RY(params[idx], wires=wires[1]); idx += 1
     
     qml.CNOT(wires=[wires[1], wires[0]])
     qml.RZ(np.pi/2, wires=wires[0])
     
-    return param_idx
+    return idx
+
+def MixingBlock_U3(params, wires):
+    """
+    [Improved] U3 Mixing
+    Simulates particle/information exchange between qubits.
+    Better for diffusion processes.
+    """
+    n = len(wires)
+    idx = 0
+    # 1. Global Rotation (Mix basis)
+    for i in range(n):
+        qml.U3(params[idx], params[idx+1], params[idx+2], wires=wires[i])
+        idx += 3
+    # 2. Entangling Layers
+    # Even pairs
+    for i in range(0, n-1, 2):
+        qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
+
+    # Odd pairs
+    for i in range(1, n, 2):
+        qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
+    return idx
 
 def MixingBlock(params, wires):
     """
-    RX + CRY based variational ansatz
-    Input params: 1D Tensor for this block
+    [Improved] XY Mixing
+    Simulates particle/information exchange between qubits.
+    Better for diffusion processes.
     """
     n = len(wires)
-    param_idx = 0
-    
-    # 1. RX Layer (n params)
+    idx = 0
+    # 1. Global Rotation (Mix basis)
     for i in range(n):
-        qml.RX(params[param_idx], wires=wires[i])
-        param_idx += 1
-    
-    # 2. CRY Layer (Pairwise)
-    
-    # Even pairs: (0,1), (2,3)...
+        qml.RY(params[idx], wires=wires[i]); idx += 1
+
+    # 2. Entangling Layers
+    # Even pairs
     for i in range(0, n-1, 2):
         qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-        qml.RZ(params[param_idx], wires=wires[(i+1)%n]); param_idx += 1
+        qml.RZ(params[idx], wires=wires[(i+1)%n])
         qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-        
-    # Odd pairs: (1,2), (3,4)...
+        idx += 1
+
+    # Odd pairs
     for i in range(1, n, 2):
         qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-        qml.RZ(params[param_idx], wires=wires[(i+1)%n]); param_idx += 1
+        qml.RZ(params[idx], wires=wires[(i+1)%n])
         qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-    
-    return param_idx
+        idx += 1
+    return idx
 
 
 class PennyLanePQC(nn.Module):
-    def __init__(self, num_qubits, reps=2):
+    def __init__(self, num_qubits, reps=2, activation=True):
         super(PennyLanePQC, self).__init__()
         self.num_qubits = num_qubits
         self.reps = reps
+        self.activation = activation
+        if self.activation:
+            self.act_func = ComplexLeakyReLU()
         
         # Block 1 & 3 (N qubits)
-        self.params_per_block_n = self._calculate_params(num_qubits)
-        self.params_per_block_ancilla = self._calculate_params(num_qubits + 1)
-        
-        self.total_params = self.params_per_block_n * 2 + self.params_per_block_ancilla
+        self.params_per_rep = self._count_params_per_rep(num_qubits)
+        self.params_per_block = self.params_per_rep * reps
+        self.total_params = self.params_per_block * 3
+
+        print(f"[Auto-Config] Total params to learn: {self.total_params}")
 
         # --- Devices ---
         self.dev_n = qml.device("default.qubit", wires=num_qubits)
@@ -131,29 +174,60 @@ class PennyLanePQC(nn.Module):
         self.qnode2 = self._create_qnode_state(self.dev_ancilla, num_qubits + 1)
         self.qnode3 = self._create_qnode_expval(self.dev_n, num_qubits)
 
-    def _calculate_params(self, n_wires):
-        """Calculate total parameters for given number of wires and repetitions."""
-        num_conv_even = len(range(0, n_wires - 1, 2))
-        num_conv_odd  = len(range(1, n_wires, 2)) 
-        total_pairs = num_conv_even + num_conv_odd
-        total_conv = total_pairs * 3
-        total_mixing = n_wires + total_pairs
-        return (total_conv + total_mixing) * self.reps
+    def _layer_ansatz(self, layer_params, wires):
+        """
+        Single layer ansatz with weight sharing.
+        Args:
+            layer_params: 1D Tensor of parameters for this layer
+            wires: List of qubit indices
+        """
+        n_wires = len(wires)
+        
+        ptr = 0
+        
+        # 1. Conv Even (3 params -> or 9 params)
+        # n_conv = 3 # IsingZZ 등으로 바꾸면 이 숫자만 9로 변경 등
+        # for i in range(0, n_wires-1, 2):
+        #     ConvUnit(layer_params[ptr:ptr+n_conv], wires=[wires[i], wires[(i+1)%n_wires]])
+        #     ptr += n_conv
+        
+        # # 2. Conv Odd
+        # for i in range(1, n_wires, 2):
+        #     ConvUnit(layer_params[ptr:ptr+n_conv], wires=[wires[i], wires[(i+1)%n_wires]])
+        #     ptr += n_conv
+
+            
+        # 3. Mixing
+        ptr += MixingBlock_U3(layer_params[ptr:], wires=wires)
+        
+        
+
+    def _count_params_per_rep(self, n_wires):
+        """
+        Estimate number of parameters per repetition using WeightProbe.
+        Args:
+            n_wires: Number of qubits (wires)
+        Returns:
+            total_params: Estimated number of parameters per repetition
+        """
+        probe = WeightProbe()
+        wires = range(n_wires)
+      
+        try:
+            idx = 0
+            self._layer_ansatz(probe, wires)
+            
+        except Exception as e:
+            pass
+            
+        return probe.max_idx + 1
 
     def _circuit_ansatz(self, weights, wires):
-        """common ansatz structure for the QNodes."""
-        if weights.ndim == 2:
-            weights = weights.T
-        n_wires = len(wires)
-        idx = 0
+        """실제 실행용 (파라미터 카운팅 로직과 구조 동일해야 함)"""
+        # weights shape: (reps, params_per_rep)
         for d in range(self.reps):
-            # Conv Layer
-            for i in range(0, n_wires-1, 2):
-                idx += ConvUnit(weights[idx:], wires=[wires[i], wires[(i+1)%n_wires]])
-            for i in range(1, n_wires, 2):
-                idx += ConvUnit(weights[idx:], wires=[wires[i], wires[(i+1)%n_wires]])
-            # Mixing Layer
-            idx += MixingBlock(weights[idx:], wires=wires)
+            self._layer_ansatz(weights[d], wires)
+            
 
     def _create_qnode_state(self, dev, n_wires):
         """Returns state vector QNode"""
@@ -181,14 +255,11 @@ class PennyLanePQC(nn.Module):
             all_weights: (Total Params,) 
         """
         
-        batch_size = input_state_or_latent.shape[0]
-
-        p1_end = self.params_per_block_n
-        p2_end = p1_end + self.params_per_block_ancilla
+        p_len = self.params_per_block
         
-        w1 = all_weights[:, :p1_end]
-        w2 = all_weights[:, p1_end:p2_end]
-        w3 = all_weights[:, p2_end:]
+        w1 = all_weights[:, :p_len]
+        w2 = all_weights[:, p_len:2*p_len]
+        w3 = all_weights[:, 2*p_len:]
 
         # --- 1. Block 1 (Data Qubits) ---
         # input shape: (Batch, 2^N) -> Output: (Batch, 2^N)
@@ -212,6 +283,10 @@ class PennyLanePQC(nn.Module):
         epsilon = 1e-8
         norm = torch.norm(state2_sliced, p=2, dim=1, keepdim=True)
         state2_norm = state2_sliced / (norm + epsilon)
+        if self.activation:
+            state2_norm = self.act_func(state2_norm)
+            state2_norm = state2_norm / torch.norm(state2_norm.abs(), p=2, dim=1, keepdim=True)
+
 
         # --- 5. Block 3 (Data Qubits) ---
         final_out = self.qnode3(state2_norm, w3)
@@ -221,7 +296,7 @@ class PennyLanePQC(nn.Module):
 
         return final_out
 
-# --- [3] Qiskit or PennyLane Hybrid Quantum U-Net ---
+# --- PennyLane Hybrid Quantum U-Net ---
 class QuantumUNet(nn.Module):
     """
     Hybrid Quantum-Classical U-Net (Optimized for AncillaPennyLanePQC)
@@ -254,7 +329,7 @@ class QuantumUNet(nn.Module):
 
         # --- [2] Quantum Bottleneck (Ancilla PQC) ---
         # PQC 정의 (AncillaPennyLanePQC 사용)
-        self.pqc_layer = PennyLanePQC(num_qubits=bottleneck_qubits, reps=layers)
+        self.pqc_layer = PennyLanePQC(num_qubits=bottleneck_qubits, reps=layers, activation=activation)
 
         # Time-dependent Weights for PQC
         # Shape: (Total Time Steps, Total Parameters in PQC)
@@ -306,23 +381,19 @@ class QuantumUNet(nn.Module):
 
         # --- Time-dependent Parameter Selection (Vectorized) ---
         if t is None:
-            # t가 없으면 첫 번째 시간 단계 가중치 사용 (Batch 전체에 복사)
             selected_weights = self.pqc_weights[0].unsqueeze(0).expand(batch_size, -1)
         else:
             # t: (Batch,) Tensor. 값 범위: 1 ~ T
             # Indexing: t-1 (0 ~ T-1)
             # self.pqc_weights: (T, Params)
-            # selected_weights: (Batch, Params) -> 각 샘플에 맞는 가중치를 병렬로 가져옴
             t_idx = (t - 1).long()
             t_idx = torch.clamp(t_idx, 0, self.T - 1) # 안전장치
             selected_weights = self.pqc_weights[t_idx]
 
         # --- PQC Execution ---
         # latent: (Batch, n_qubits), selected_weights: (Batch, n_params)
-        # AncillaPennyLanePQC.forward 내부에서 Batch 처리를 지원해야 함 (이전 턴 수정사항 반영됨)
         pqc_out = self.pqc_layer(latent, selected_weights)
 
-        # [중요] List -> Tensor 및 Double -> Float 변환
         if isinstance(pqc_out, (list, tuple)):
             pqc_out = torch.stack(pqc_out, dim=1)
         
@@ -402,6 +473,6 @@ class QuantumUNet(nn.Module):
 
     def get_mlp_params(self):
         return []
-    
+   
 
     
