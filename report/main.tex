@@ -4,6 +4,10 @@
 \usepackage{caption}
 \usepackage{braket}
 \usepackage{authblk}
+\usepackage{tikz}
+\usepackage{quantikz}
+\usepackage{multicol}
+\usepackage{float}
 \renewcommand\Authfont{\bfseries}
 \renewcommand\Affilfont{\small\ttfamily}
 
@@ -70,12 +74,31 @@ style=numeric
 
 
 
+%\begin{multicols}{2} % 2 block layout
   
 \section{Intrduction}
-  \subsection{Quantum Machine Learning}
+
+Quantum Machine Learning (QML) is an emerging interdisciplinary research field that integrates principles of quantum computing with classical machine learning techniques to enhance data processing, pattern recognition, and optimization tasks. 
+By exploiting quantum mechanical phenomena such as superposition, entanglement, and quantum interference, QML aims to provide computational advantages over classical learning algorithms, particularly for high-dimensional and complex datasets.
+
+In classical machine learning, the performance of algorithms is often constrained by computational complexity and memory requirements as data size and model depth increase. 
+Quantum computing, on the other hand, offers a fundamentally different computation paradigm, where information is represented using quantum bits (qubits) that can exist in multiple states simultaneously. 
+This property allows quantum algorithms to explore large solution spaces more efficiently than their classical counterparts in certain scenarios.
+
+One of the key motivations behind QML is the potential for speedup in tasks such as linear algebra operations, optimization, and sampling, which form the backbone of many machine learning models. 
+Quantum-enhanced algorithms, including quantum support vector machines, variational quantum circuits, and quantum neural networks, have been proposed to accelerate learning processes and improve model expressiveness.
+
+Despite its promising advantages, QML also faces several challenges. 
+Current quantum hardware, commonly referred to as Noisy Intermediate-Scale Quantum (NISQ) devices, suffers from limited qubit counts, short coherence times, and gate errors. 
+These hardware constraints restrict the depth and scalability of quantum models, often requiring hybrid quantum-classical approaches for practical implementations. 
+Additionally, the theoretical quantum advantage of many QML algorithms remains an open research question, as classical algorithms continue to improve rapidly.
+
+In summary, Quantum Machine Learning represents a promising yet evolving research direction. 
+While it offers the potential for enhanced computational power and novel learning capabilities, significant challenges related to hardware limitations, noise, and algorithmic scalability must be addressed before widespread real-world adoption becomes feasible.
+
 
   \subsection{Quantum Convolutional Neural Network}
-  
+
 
 
 \section{Diffusion Model}
@@ -201,7 +224,7 @@ We referred to IBM Quantum Platform, especially Quantum Machine Learning.\cite{D
     \ket{\psi_x} = \frac{1}{\alpha}\sum_{i=1}^N x_i \ket{i}
   \end{equation}
   Here, $\ket{i}$ is the computational basis state and $\alpha$ is a normalization constant ensuring $\langle \psi_x | \psi_x \rangle = 1$. 
-  And $\alpha$ is a normalization constant to be determined from the data being encoded.
+  And $\alpha$ is a normalization constant to be determined from the data being encoded. We use amplitude encoding in the quantum diffusion model.
 
   \begin{equation}
     \alpha = \sqrt{\sum_{i=1}^{N}|x_i|^2}
@@ -231,6 +254,201 @@ We referred to IBM Quantum Platform, especially Quantum Machine Learning.\cite{D
   \begin{equation}
     \ket{\vec{x}} = \bigotimes_{k=1}^{N/2}\left( \cos{x_{2k-1}}\ket{0} + e^{ix_{2k}}\sin{x_{2k-1}\ket{1}} \right)
   \end{equation}
+
+
+\section{Quantum Circuit}
+The choice of quantum circuit ansatz is critical in designing Quantum Machine Learning (QML) models, 
+as it determines the expressivity and trainability of the network within the constraints of Noisy Intermediate-Scale Quantum (NISQ) devices. 
+Based on recent surveys and specific applications in diffusion models, we categorize relevant ansatzes into general-purpose architectures and task-specific designs for image processing.
+
+\subsection{General Variational Ansatzes}
+\begin{itemize}
+    \item \textbf{Hardware-Efficient Ansatz (HEA):} 
+    Designed to minimize circuit depth and gate count on NISQ devices, HEA utilizes a layered structure of parameterized single-qubit rotations followed by entangling gates (e.g., CNOTs) tailored to the specific connectivity of the quantum hardware \cite{guo2024patterns}. While it offers high implementability, it is known to suffer from barren plateaus if not carefully initialized.
+    
+    \item \textbf{Hamiltonian Variational Ansatz (HVA):} 
+    Inspired by the Quantum Approximate Optimization Algorithm (QAOA) and adiabatic quantum computation, HVA constructs the ansatz based on the problem Hamiltonian. It is particularly effective for physics-inspired problems but introduces a hierarchical structure to manage complexity \cite{guo2024patterns}.
+\end{itemize}
+
+\subsection{Ansatzes for Quantum Machine Learning and Vision}
+For high-dimensional data such as images, specialized ansatzes inspired by tensor networks and convolutional neural networks are preferred.
+
+\begin{itemize}
+    \item \textbf{Quantum Convolutional Neural Network (QCNN):} 
+    QCNN adapts the structure of classical CNNs to the quantum domain. It consists of alternating convolutional layers (quasilocal unitary evolutions) and pooling layers (measurements or partial traces) to hierarchically reduce dimensionality while extracting features \cite{guo2024patterns}. This structure effectively captures spatial correlations, making it suitable for image generation tasks.
+    
+    \item \textbf{Multiscale Entanglement Renormalization Ansatz (MERA):} 
+    Originally designed for simulating quantum many-body systems, MERA represents quantum states using a hierarchical tensor network. It efficiently captures correlations at different length scales, which is analogous to the feature extraction process in deep learning \cite{guo2024patterns}.
+\end{itemize}
+
+\subsection{Optimal General Two-Qubit Ansatz (Vatan-Williams Decomposition)}
+
+
+We adopt the optimal quantum circuit decomposition for general two-qubit interactions as proposed by Vatan and Williams \cite{Vatan_2004}. Specifically, we utilize the explicit circuit construction for the non-local interaction block $N(\alpha, \beta, \gamma)$, which is the core component of the ansatz.
+
+The circuit structure, depicted in Fig.~\ref{fig:interaction_block}, consists of three CNOT gates interleaved with parameterized single-qubit rotations. This configuration is capable of simulating the unitary operator $U = \exp(-i(\alpha \sigma_x \otimes \sigma_x + \beta \sigma_y \otimes \sigma_y + \gamma \sigma_z \otimes \sigma_z))$ up to local basis transformations.
+
+\begin{figure}[h]
+    \centering
+    \begin{quantikz}
+        \lstick{$q_0$} & \qw & \targ{} & \gate{R_z(\frac{\pi}{2}-2\gamma)} & \ctrl{1} & \qw & \targ{} & \gate{R_z(\frac{\pi}{2})} & \qw \\
+        \lstick{$q_1$} & \gate{R_z(-\frac{\pi}{2})} & \ctrl{-1} & \gate{R_y(2\alpha-\frac{\pi}{2})} & \targ{} & \gate{R_y(\frac{\pi}{2}-2\beta)} & \ctrl{-1} & \qw & \qw
+    \end{quantikz}
+    \caption{The parameterized quantum circuit used in our Quantum Bottleneck. This structure implements the optimal decomposition for arbitrary two-qubit entangling gates, characterized by the parameters $\alpha, \beta, \gamma$. Note the alternating CNOT direction and the specific rotation angles derived from the canonical decomposition.}
+    \label{fig:interaction_block}
+\end{figure}
+
+The parameters $\alpha, \beta, \gamma$ serve as the learnable weights of the quantum diffusion model, allowing the network to capture complex correlations between features represented by qubits $q_0$ and $q_1$.
+
+\subsection{Global Correlation and Phase Mixing}
+
+While the convolutional layers capture local spatial dependencies, generating high-fidelity images requires the model to understand global structures and high-frequency details. To address this, we introduce a \textit{Phase Mixing} block designed to enhance the expressivity of the ansatz in the frequency domain \cite{schuld2021effect}.
+
+The Phase Mixing block consists of two stages:
+\begin{enumerate}
+    \item \textbf{Star-Topology Entanglement:} We apply a series of Controlled-Rotation $Z$ ($CRZ$) gates. As shown in the code implementation, the first qubit ($q_0$) acts as a central node (control), interacting with all other qubits ($q_i$) via parameterized rotations. This creates a "star" connectivity graph, efficiently distributing information from the central feature to the entire register.
+    \item \textbf{Quantum Fourier Transform (QFT):} Following the entanglement, a QFT operation is applied to the register. This transforms the encoded information from the computational basis to the Fourier basis, effectively mixing the local correlations into global phase information \cite{nielsen2010quantum}.
+\end{enumerate}
+
+The circuit diagram for this block is illustrated in Fig.~\ref{fig:phase_mixing}.
+
+\begin{figure}[h]
+    \centering
+    \begin{quantikz}
+        \lstick{$q_0$} & \ctrl{1} & \ctrl{2} & \qw & \dots & \ctrl{3} & \gate[4, disable auto height]{QFT} & \qw \\
+        \lstick{$q_1$} & \gate{R_z(\phi_1)} & \qw & \qw & \dots & \qw & \qw & \qw \\
+        \lstick{$q_2$} & \qw & \gate{R_z(\phi_2)} & \qw & \dots & \qw & \qw & \qw \\
+        \vdots & & & & \ddots & & & \\
+        \lstick{$q_{n-1}$} & \qw & \qw & \qw & \dots & \gate{R_z(\phi_{n-1})} & \qw & \qw
+    \end{quantikz}
+    \caption{The \textit{Phase Mixing} architecture. It employs a star-topology interaction where the first qubit controls parameterized $R_z$ rotations on all other qubits, followed by a Quantum Fourier Transform (QFT) to enforce global mixing. This structure allows the model to learn complex frequency-domain features essential for image sharpness.}
+    \label{fig:phase_mixing}
+\end{figure}
+
+Mathematically, this operation can be expressed as:
+\begin{equation}
+    U_{\text{mix}}(\vec{\phi}) = \text{QFT} \cdot \prod_{i=1}^{n-1} CRZ_{0 \to i}(\phi_i)
+\end{equation}
+where $CRZ_{c \to t}(\phi) = |0\rangle\langle 0|_c \otimes I_t + |1\rangle\langle 1|_c \otimes R_z(\phi)_t$.
+
+
+
+\section{Adaptive Non-Local Measurement}
+
+In conventional Variational Quantum Circuits (VQCs), information extraction is typically limited to fixed local measurements, such as the expectation values of Pauli-$Z$ operators ($\langle \sigma_z^{(i)} \rangle$). 
+This approach restricts the accessible information to local properties of individual qubits, failing to capture the rich correlations encoded in the entangled quantum state.
+
+To fully leverage the high-dimensional Hilbert space of our quantum bottleneck, we implement the \textit{Adaptive Non-Local Observable (ANO)} framework \cite{lin2026quantumsuperresolutionadaptivenonlocal}. 
+Instead of fixed operators, we employ a set of trainable Hermitian observables $\{H_k\}_{k=1}^{K}$ that act on the entire qubit register.
+
+\subsection{Trainable Hermitian Construction}
+For an $n$-qubit system with dimension $D=2^n$, a general observable is represented by a $D \times D$ Hermitian matrix. We parameterize the $k$-th observable $H_k(\phi_k)$ using a complex matrix $M_k(\phi_k) \in \mathbb{C}^{D \times D}$ with learnable weights $\phi_k$:
+\begin{equation}
+    H_k(\phi_k) = \frac{1}{2} \left( M_k(\phi_k) + M_k(\phi_k)^\dagger \right)
+\end{equation}
+This construction guarantees the Hermiticity ($H = H^\dagger$) required for valid quantum measurements while allowing the optimization process to explore the full manifold of observable operators.
+
+\subsection{High-Dimensional Feature Extraction}
+A key advantage of our approach is the ability to decouple the output feature dimension $K$ from the number of physical qubits $n$. By configuring $K \ge n$, we can extract an over-complete set of features from the latent quantum state $\rho = |\psi(\theta)\rangle\langle\psi(\theta)|$. 
+The output vector $\mathbf{y} \in \mathbb{R}^K$ fed into the classical decoder is given by:
+\begin{equation}
+    y_k = \langle \psi(\theta) | H_k(\phi_k) | \psi(\theta) \rangle = \text{Tr}(\rho H_k(\phi_k)), \quad k=1, \dots, K
+\end{equation}
+By jointly training the circuit parameters $\theta$ and the measurement parameters $\phi$, the model learns to construct "quantum lenses" that focus on the specific sub-spaces containing the most relevant features for image reconstruction, such as high-frequency edge details.
+
+
+\begin{figure}[t]
+    \centering
+    \begin{tikzpicture}
+        % Define styles
+        \tikzstyle{block} = [draw, rectangle, minimum height=3em, minimum width=3em, align=center, rounded corners]
+        \tikzstyle{arrow} = [thick,->,>=stealth]
+        
+        % Nodes
+        \node (input) {Classical Input $x$};
+        \node[block, fill=blue!10, right=1cm of input] (encoder) {Encoding \\ $V(x)$};
+        \node[block, fill=red!10, right=1cm of encoder] (ansatz) {Quantum Circuit \\ $U(\theta)$};
+        
+        % ANO Part
+        \node[block, fill=yellow!10, right=1.5cm of ansatz, minimum height=4em] (ano) {Adaptive Observables \\ $\{H_k(\phi_k)\}_{k=1}^K$};
+        
+        \node[right=1.5cm of ano] (output) {Features $\mathbf{y} \in \mathbb{R}^K$};
+        
+        % Arrows
+        \draw[arrow] (input) -- (encoder);
+        \draw[arrow] (encoder) -- node[above] {$|\psi_0\rangle$} (ansatz);
+        \draw[arrow] (ansatz) -- node[above] {$|\psi(\theta)\rangle$} (ano);
+        \draw[arrow] (ano) -- node[above] {Measure} (output);
+        
+        % Annotations for Learnable Params
+        \node[below=0.2cm of ansatz, text=red] {Trainable $\theta$};
+        \node[below=0.2cm of ano, text=orange] {Trainable $\phi$};
+        
+    \end{tikzpicture}
+    
+    \caption{Schematic of the Quantum Bottleneck with Adaptive Non-Local Observables (ANO). 
+    Unlike standard VQCs that output $N$ local measurements, our ANO framework employs a set of $K$ trainable Hermitian operators $\{H_k(\phi_k)\}$. 
+    This allows the extraction of high-dimensional feature vectors ($K \ge N$) from the entangled quantum state $|\psi(\theta)\rangle$, effectively acting as a learnable quantum lens for super-resolution tasks.}
+    \label{fig:ano_architecture}
+\end{figure}
+% \subsection{Architectures for Diffusion and Super-Resolution}
+% Recent studies on quantum generative models have introduced specialized architectures to enhance training stability and resolution.
+
+% \begin{itemize}
+%     \item \textbf{Reverse-Bottleneck PQC:} 
+%     In the context of Quantum Diffusion Models, Cacioppo et al. proposed the \textit{Reverse-Bottleneck} architecture. Unlike standard bottleneck designs, this approach introduces ancillary qubits and performs measurements in a specific order (reversing the ancilla introduction) to maintain the flow of information during the denoising steps \cite{cacioppo2023diffusion}. This structure has shown superior performance in generating coherent samples compared to standard designs.
+    
+%     \item \textbf{Adaptive Non-Local Observables (ANO):} 
+%     To overcome the resolution limits of fixed Pauli measurements, Lin et al. proposed the ANO framework. Instead of fixed observables, ANO employs trainable multi-qubit Hermitian operators. This allows the measurement process itself to adapt during training, effectively acting as a high-resolution lens that extracts fine-grained information from the entangled quantum state \cite{lin2026sr}.
+% \end{itemize}
+
+\section{Circuit Benchmarking and Evaluation}
+
+Before integrating the Quantum Bottleneck into the full U-Net architecture, we quantitatively evaluated the intrinsic properties of our proposed ansatz. 
+Following the framework established by Sim et al. \cite{Sim_2019}, we utilize two key descriptors: \textit{Expressibility} and \textit{Entangling Capability}. 
+These metrics ensure that our circuit is sufficiently expressive to model complex latent distributions while effectively capturing non-local correlations required for the diffusion process.
+
+\subsection{Expressibility via KL Divergence}
+
+Expressibility measures the ability of a parameterized quantum circuit (PQC) to explore the Hilbert space. We quantify this by comparing the distribution of state fidelities generated by our ansatz against the distribution expected from an ensemble of Haar-random states (which represents the maximally expressive uniform distribution).
+
+Let $F = |\langle \psi_{\theta} | \psi_{\phi} \rangle|^2$ be the fidelity between two states sampled from the PQC with random parameters $\theta, \phi$. The probability density function (PDF) of fidelities for Haar-random states in an $N$-dimensional Hilbert space ($N=2^n$) is given by $P_{\text{Haar}}(F) = (N-1)(1-F)^{N-2}$.
+
+The expressibility $E$ is defined as the Kullback-Leibler (KL) divergence between the PQC's fidelity distribution $P_{\text{PQC}}(F)$ and the analytical Haar distribution $P_{\text{Haar}}(F)$:
+\begin{equation}
+    E = D_{KL}(P_{\text{PQC}} || P_{\text{Haar}}) = \int_0^1 P_{\text{PQC}}(F) \ln \left( \frac{P_{\text{PQC}}(F)}{P_{\text{Haar}}(F)} \right) dF
+\end{equation}
+A lower value of $E$ indicates that the ansatz can uniformly explore the Hilbert space, approaching the statistical properties of random states. In our experiments, we approximate this integral using a discretized histogram of sampled fidelities.
+
+\subsection{Entangling Capability via Meyer-Wallach Measure}
+
+To verify the circuit's ability to generate multi-partite entanglement—a crucial feature for capturing global dependencies in image data—we employ the Meyer-Wallach (MW) measure $Q$. For a given state $|\psi\rangle$, the MW measure is defined as the average purity of the single-qubit reduced density matrices:
+\begin{equation}
+    Q(|\psi\rangle) = \frac{4}{n} \sum_{k=1}^{n} D(\iota_k(|\psi\rangle)) = \frac{4}{n} \sum_{k=1}^{n} \frac{1}{2} \left( 1 - \text{Tr}(\rho_k^2) \right)
+\end{equation}
+where $\rho_k = \text{Tr}_{\neg k}(|\psi\rangle\langle\psi|)$ is the reduced density matrix of the $k$-th qubit. The value $Q$ ranges from 0 (product states, unentangled) to 1 (maximally entangled, e.g., GHZ states).
+
+We estimate the \textit{Entangling Capability} of our ansatz by averaging $Q$ over an ensemble of states sampled with uniformly random parameters:
+\begin{equation}
+    \bar{Q} = \frac{1}{S} \sum_{i=1}^{S} Q(|\psi(\theta_i)\rangle)
+\end{equation}
+A high $\bar{Q}$ value confirms that our \textit{ConvUnit} and \textit{PhaseMixing} layers successfully distribute information across the qubit register, facilitating the "global mixing" required for high-resolution image synthesis.
+
+\subsection{Visualizing the State Space}
+In addition to quantitative metrics, we visualize the distribution of single-qubit reduced states on the Bloch sphere. 
+As shown in Fig.~\ref{fig:bloch_dist}, the concentration of states within the interior of the Bloch sphere (as opposed to the surface) serves as visual evidence of entanglement, consistent with high Meyer-Wallach values.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figure/bloch_sphere_dist.png}
+    \caption{Visualization of the single-qubit reduced state distribution on the Bloch sphere generated by our ANO-based ansatz. 
+    Each red point represents the state of the first qubit traced out from the multi-qubit system, sampled over random circuit parameters. 
+    (Left) Points distributed strictly on the surface indicate product states with no entanglement. 
+    (Right) Points filling the interior volume demonstrate the generation of strong multi-partite entanglement, as the reduced state becomes mixed due to correlations with other qubits. 
+    This volumetric coverage visually corroborates the high Meyer-Wallach measure and Expressibility scores.}
+    \label{fig:bloch_dist}
+\end{figure}
+
 
 \subsection{Architecture}
 The proposed model, illustrated in Figure \ref{fig:architecture}, 
@@ -356,5 +574,6 @@ To address these optimization challenges and ensure convergence stability, we ar
 
 
 \printbibliography
+% \end{multicols} % 2 block layout
 
 \end{document}

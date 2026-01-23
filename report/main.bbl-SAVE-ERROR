@@ -1,0 +1,428 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{nty/global//global/global/global}
+    \entry{ANDERSON1982313}{article}{}{}
+      \name{author}{1}{}{%
+        {{hash=e8a4070f47356ebf747da5eda23eeddd}{%
+           family={Anderson},
+           familyi={A\bibinitperiod},
+           given={Brian\bibnamedelima D.O.},
+           giveni={B\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+      }
+      \strng{namehash}{e8a4070f47356ebf747da5eda23eeddd}
+      \strng{fullhash}{e8a4070f47356ebf747da5eda23eeddd}
+      \strng{fullhashraw}{e8a4070f47356ebf747da5eda23eeddd}
+      \strng{bibnamehash}{e8a4070f47356ebf747da5eda23eeddd}
+      \strng{authorbibnamehash}{e8a4070f47356ebf747da5eda23eeddd}
+      \strng{authornamehash}{e8a4070f47356ebf747da5eda23eeddd}
+      \strng{authorfullhash}{e8a4070f47356ebf747da5eda23eeddd}
+      \strng{authorfullhashraw}{e8a4070f47356ebf747da5eda23eeddd}
+      \field{sortinit}{A}
+      \field{sortinithash}{2f401846e2029bad6b3ecc16d50031e2}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Reverse-time stochastic diffusion equation models are defined and it is shown how most processes defined via a forward-time or conventional diffusion equation model have an associated reverse-time model.}
+      \field{issn}{0304-4149}
+      \field{journaltitle}{Stochastic Processes and their Applications}
+      \field{number}{3}
+      \field{title}{Reverse-time diffusion equation models}
+      \field{volume}{12}
+      \field{year}{1982}
+      \field{pages}{313\bibrangedash 326}
+      \range{pages}{14}
+      \verb{doi}
+      \verb https://doi.org/10.1016/0304-4149(82)90051-5
+      \endverb
+      \verb{urlraw}
+      \verb https://www.sciencedirect.com/science/article/pii/0304414982900515
+      \endverb
+      \verb{url}
+      \verb https://www.sciencedirect.com/science/article/pii/0304414982900515
+      \endverb
+    \endentry
+    \entry{cacioppo2023quantumdiffusionmodels}{misc}{}{}
+      \name{author}{4}{}{%
+        {{hash=a41e76261860def6d41b9b1b3582800b}{%
+           family={Cacioppo},
+           familyi={C\bibinitperiod},
+           given={Andrea},
+           giveni={A\bibinitperiod}}}%
+        {{hash=05455efbf6fea0a7a67715c28361fc89}{%
+           family={Colantonio},
+           familyi={C\bibinitperiod},
+           given={Lorenzo},
+           giveni={L\bibinitperiod}}}%
+        {{hash=0918e7045f4054a95b386dd332f67a83}{%
+           family={Bordoni},
+           familyi={B\bibinitperiod},
+           given={Simone},
+           giveni={S\bibinitperiod}}}%
+        {{hash=7a9e0db66cdb4064758798ec0524022e}{%
+           family={Giagu},
+           familyi={G\bibinitperiod},
+           given={Stefano},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{78e36e5519323a14cb1b039b208d63b6}
+      \strng{fullhash}{03307ce8a41ab34d3cf10e2aeae603ca}
+      \strng{fullhashraw}{03307ce8a41ab34d3cf10e2aeae603ca}
+      \strng{bibnamehash}{78e36e5519323a14cb1b039b208d63b6}
+      \strng{authorbibnamehash}{78e36e5519323a14cb1b039b208d63b6}
+      \strng{authornamehash}{78e36e5519323a14cb1b039b208d63b6}
+      \strng{authorfullhash}{03307ce8a41ab34d3cf10e2aeae603ca}
+      \strng{authorfullhashraw}{03307ce8a41ab34d3cf10e2aeae603ca}
+      \field{sortinit}{C}
+      \field{sortinithash}{4d103a86280481745c9c897c925753c0}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{quant-ph}
+      \field{eprinttype}{arXiv}
+      \field{title}{Quantum Diffusion Models}
+      \field{year}{2023}
+      \verb{eprint}
+      \verb 2311.15444
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/2311.15444
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/2311.15444
+      \endverb
+    \endentry
+    \entry{diffusion-model}{online}{}{}
+      \field{sortinit}{D}
+      \field{sortinithash}{6f385f66841fb5e82009dc833c761848}
+      \field{labeltitlesource}{title}
+      \field{title}{Diffusion Model}
+      \field{urlday}{7}
+      \field{urlmonth}{12}
+      \field{urlyear}{2025}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://en.wikipedia.org/wiki/Diffusion_model
+      \endverb
+      \verb{url}
+      \verb https://en.wikipedia.org/wiki/Diffusion_model
+      \endverb
+    \endentry
+    \entry{guo2024patterns}{misc}{}{}
+      \name{author}{3}{}{%
+        {{hash=4986c71d458fe7c7be90bb6fd89a936c}{%
+           family={Guo},
+           familyi={G\bibinitperiod},
+           given={Xiaoyu},
+           giveni={X\bibinitperiod}}}%
+        {{hash=fe52aa27271de58cba06af4b6fe9d7d3}{%
+           family={Muta},
+           familyi={M\bibinitperiod},
+           given={Takahiro},
+           giveni={T\bibinitperiod}}}%
+        {{hash=01ba114b8965c13ceb69fb83d61c1e40}{%
+           family={Zhao},
+           familyi={Z\bibinitperiod},
+           given={Jianjun},
+           giveni={J\bibinitperiod}}}%
+      }
+      \strng{namehash}{a4338b7203e85b13ea9d94d11a37eda6}
+      \strng{fullhash}{a4338b7203e85b13ea9d94d11a37eda6}
+      \strng{fullhashraw}{a4338b7203e85b13ea9d94d11a37eda6}
+      \strng{bibnamehash}{a4338b7203e85b13ea9d94d11a37eda6}
+      \strng{authorbibnamehash}{a4338b7203e85b13ea9d94d11a37eda6}
+      \strng{authornamehash}{a4338b7203e85b13ea9d94d11a37eda6}
+      \strng{authorfullhash}{a4338b7203e85b13ea9d94d11a37eda6}
+      \strng{authorfullhashraw}{a4338b7203e85b13ea9d94d11a37eda6}
+      \field{sortinit}{G}
+      \field{sortinithash}{32d67eca0634bf53703493fb1090a2e8}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{cs.SE}
+      \field{eprinttype}{arXiv}
+      \field{title}{Quantum Circuit Ansatz: Patterns of Abstraction and Reuse of Quantum Algorithm Design}
+      \field{year}{2024}
+      \verb{eprint}
+      \verb 2405.05021
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/2405.05021
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/2405.05021
+      \endverb
+    \endentry
+    \entry{DBLP:journals/corr/abs-2006-11239}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=2ac2ca10b22e4d13af1767e87495412f}{%
+           family={Ho},
+           familyi={H\bibinitperiod},
+           given={Jonathan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=31ac0835ffc3ba6d612252522a6a2011}{%
+           family={Jain},
+           familyi={J\bibinitperiod},
+           given={Ajay},
+           giveni={A\bibinitperiod}}}%
+        {{hash=e28d4ee199593959d8c29980a64f1974}{%
+           family={Abbeel},
+           familyi={A\bibinitperiod},
+           given={Pieter},
+           giveni={P\bibinitperiod}}}%
+      }
+      \strng{namehash}{1ef17e0fed8d834b029ebb1c6adf76b4}
+      \strng{fullhash}{1ef17e0fed8d834b029ebb1c6adf76b4}
+      \strng{fullhashraw}{1ef17e0fed8d834b029ebb1c6adf76b4}
+      \strng{bibnamehash}{1ef17e0fed8d834b029ebb1c6adf76b4}
+      \strng{authorbibnamehash}{1ef17e0fed8d834b029ebb1c6adf76b4}
+      \strng{authornamehash}{1ef17e0fed8d834b029ebb1c6adf76b4}
+      \strng{authorfullhash}{1ef17e0fed8d834b029ebb1c6adf76b4}
+      \strng{authorfullhashraw}{1ef17e0fed8d834b029ebb1c6adf76b4}
+      \field{sortinit}{H}
+      \field{sortinithash}{23a3aa7c24e56cfa16945d55545109b5}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprinttype}{arXiv}
+      \field{journaltitle}{CoRR}
+      \field{title}{Denoising Diffusion Probabilistic Models}
+      \field{volume}{abs/2006.11239}
+      \field{year}{2020}
+      \verb{eprint}
+      \verb 2006.11239
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/2006.11239
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/2006.11239
+      \endverb
+    \endentry
+    \entry{Data-encoding}{online}{}{}
+      \field{sortinit}{I}
+      \field{sortinithash}{8d291c51ee89b6cd86bf5379f0b151d8}
+      \field{labeltitlesource}{title}
+      \field{title}{IBM Quantum Platform Quantum Machine Learning}
+      \field{urlday}{13}
+      \field{urlmonth}{12}
+      \field{urlyear}{2025}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://quantum.cloud.ibm.com/learning/en/courses/quantum-machine-learning/data-encoding#methods-of-encoding
+      \endverb
+      \verb{url}
+      \verb https://quantum.cloud.ibm.com/learning/en/courses/quantum-machine-learning/data-encoding#methods-of-encoding
+      \endverb
+    \endentry
+    \entry{Ito-calculus}{online}{}{}
+      \field{sortinit}{I}
+      \field{sortinithash}{8d291c51ee89b6cd86bf5379f0b151d8}
+      \field{labeltitlesource}{title}
+      \field{title}{Ito calculus}
+      \field{urlday}{7}
+      \field{urlmonth}{12}
+      \field{urlyear}{2025}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://en.wikipedia.org/wiki/It%C3%B4_calculus
+      \endverb
+      \verb{url}
+      \verb https://en.wikipedia.org/wiki/It%C3%B4_calculus
+      \endverb
+    \endentry
+    \entry{kl-divergence}{online}{}{}
+      \field{sortinit}{K}
+      \field{sortinithash}{c02bf6bff1c488450c352b40f5d853ab}
+      \field{labeltitlesource}{title}
+      \field{title}{Kullback-Leibler Divergence}
+      \field{urlday}{7}
+      \field{urlmonth}{12}
+      \field{urlyear}{2025}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence
+      \endverb
+      \verb{url}
+      \verb https://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence
+      \endverb
+    \endentry
+    \entry{lin2026quantumsuperresolutionadaptivenonlocal}{misc}{}{}
+      \name{author}{4}{}{%
+        {{hash=aa2d6ed69d7e653d63f5f12aca757409}{%
+           family={Lin},
+           familyi={L\bibinitperiod},
+           given={Hsin-Yi},
+           giveni={H\bibinithyphendelim Y\bibinitperiod}}}%
+        {{hash=e66c5be0dbd500b96ae1262fb13f53a0}{%
+           family={Tseng},
+           familyi={T\bibinitperiod},
+           given={Huan-Hsin},
+           giveni={H\bibinithyphendelim H\bibinitperiod}}}%
+        {{hash=9e097d42e7c19528e5ff45f31b0b4d05}{%
+           family={Chen},
+           familyi={C\bibinitperiod},
+           given={Samuel\bibnamedelima Yen-Chi},
+           giveni={S\bibinitperiod\bibinitdelim Y\bibinithyphendelim C\bibinitperiod}}}%
+        {{hash=da090c647f62a1cbdfe170b1a59fd90d}{%
+           family={Yoo},
+           familyi={Y\bibinitperiod},
+           given={Shinjae},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{c9e277c284bd12176ec3c11815fb430b}
+      \strng{fullhash}{e706f6f194123c6550801e25cf95647e}
+      \strng{fullhashraw}{e706f6f194123c6550801e25cf95647e}
+      \strng{bibnamehash}{c9e277c284bd12176ec3c11815fb430b}
+      \strng{authorbibnamehash}{c9e277c284bd12176ec3c11815fb430b}
+      \strng{authornamehash}{c9e277c284bd12176ec3c11815fb430b}
+      \strng{authorfullhash}{e706f6f194123c6550801e25cf95647e}
+      \strng{authorfullhashraw}{e706f6f194123c6550801e25cf95647e}
+      \field{sortinit}{L}
+      \field{sortinithash}{7c47d417cecb1f4bd38d1825c427a61a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{eprintclass}{quant-ph}
+      \field{eprinttype}{arXiv}
+      \field{title}{Quantum Super-resolution by Adaptive Non-local Observables}
+      \field{year}{2026}
+      \verb{eprint}
+      \verb 2601.14433
+      \endverb
+      \verb{urlraw}
+      \verb https://arxiv.org/abs/2601.14433
+      \endverb
+      \verb{url}
+      \verb https://arxiv.org/abs/2601.14433
+      \endverb
+    \endentry
+    \entry{qdm}{online}{}{}
+      \field{sortinit}{Q}
+      \field{sortinithash}{ce69a400a872ddd02ee7fdb3b38c6abd}
+      \field{labeltitlesource}{title}
+      \field{title}{Quantum Diffusion Model}
+      \field{urlday}{13}
+      \field{urlmonth}{12}
+      \field{urlyear}{2025}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://github.com/AndreaCacioppo/quantum-diffusion-models-code
+      \endverb
+      \verb{url}
+      \verb https://github.com/AndreaCacioppo/quantum-diffusion-models-code
+      \endverb
+    \endentry
+    \entry{Sim_2019}{article}{}{}
+      \name{author}{3}{}{%
+        {{hash=f156a71a758735a1cfc0aab991a121e2}{%
+           family={Sim},
+           familyi={S\bibinitperiod},
+           given={Sukin},
+           giveni={S\bibinitperiod}}}%
+        {{hash=9831fd95cc14da373cb72142dd856b48}{%
+           family={Johnson},
+           familyi={J\bibinitperiod},
+           given={Peter\bibnamedelima D.},
+           giveni={P\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=f3c5b9d5ef132a3251ffdee830e06424}{%
+           family={Aspuru‐Guzik},
+           familyi={A\bibinithyphendelim G\bibinitperiod},
+           given={Alán},
+           giveni={A\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Wiley}%
+      }
+      \strng{namehash}{fd1942c456ef90b367069a56737972e4}
+      \strng{fullhash}{fd1942c456ef90b367069a56737972e4}
+      \strng{fullhashraw}{fd1942c456ef90b367069a56737972e4}
+      \strng{bibnamehash}{fd1942c456ef90b367069a56737972e4}
+      \strng{authorbibnamehash}{fd1942c456ef90b367069a56737972e4}
+      \strng{authornamehash}{fd1942c456ef90b367069a56737972e4}
+      \strng{authorfullhash}{fd1942c456ef90b367069a56737972e4}
+      \strng{authorfullhashraw}{fd1942c456ef90b367069a56737972e4}
+      \field{sortinit}{S}
+      \field{sortinithash}{b164b07b29984b41daf1e85279fbc5ab}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{2511-9044}
+      \field{journaltitle}{Advanced Quantum Technologies}
+      \field{month}{10}
+      \field{number}{12}
+      \field{title}{Expressibility and Entangling Capability of Parameterized Quantum Circuits for Hybrid Quantum‐Classical Algorithms}
+      \field{volume}{2}
+      \field{year}{2019}
+      \verb{doi}
+      \verb 10.1002/qute.201900070
+      \endverb
+      \verb{urlraw}
+      \verb http://dx.doi.org/10.1002/qute.201900070
+      \endverb
+      \verb{url}
+      \verb http://dx.doi.org/10.1002/qute.201900070
+      \endverb
+    \endentry
+    \entry{Vatan_2004}{article}{}{}
+      \name{author}{2}{}{%
+        {{hash=3899b2f0ab9ead90771ae1929a7d11ed}{%
+           family={Vatan},
+           familyi={V\bibinitperiod},
+           given={Farrokh},
+           giveni={F\bibinitperiod}}}%
+        {{hash=1b2c04f5a4998bf4480324562bc293f4}{%
+           family={Williams},
+           familyi={W\bibinitperiod},
+           given={Colin},
+           giveni={C\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {American Physical Society (APS)}%
+      }
+      \strng{namehash}{70040584c78cf1aa41a1c6600d1bfc73}
+      \strng{fullhash}{70040584c78cf1aa41a1c6600d1bfc73}
+      \strng{fullhashraw}{70040584c78cf1aa41a1c6600d1bfc73}
+      \strng{bibnamehash}{70040584c78cf1aa41a1c6600d1bfc73}
+      \strng{authorbibnamehash}{70040584c78cf1aa41a1c6600d1bfc73}
+      \strng{authornamehash}{70040584c78cf1aa41a1c6600d1bfc73}
+      \strng{authorfullhash}{70040584c78cf1aa41a1c6600d1bfc73}
+      \strng{authorfullhashraw}{70040584c78cf1aa41a1c6600d1bfc73}
+      \field{sortinit}{V}
+      \field{sortinithash}{afb52128e5b4dc4b843768c0113d673b}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{1094-1622}
+      \field{journaltitle}{Physical Review A}
+      \field{month}{3}
+      \field{number}{3}
+      \field{title}{Optimal quantum circuits for general two-qubit gates}
+      \field{volume}{69}
+      \field{year}{2004}
+      \verb{doi}
+      \verb 10.1103/physreva.69.032315
+      \endverb
+      \verb{urlraw}
+      \verb http://dx.doi.org/10.1103/PhysRevA.69.032315
+      \endverb
+      \verb{url}
+      \verb http://dx.doi.org/10.1103/PhysRevA.69.032315
+      \endverb
+    \endentry
+  \enddatalist
+  \missing{nielsen2010quantum}
+  \missing{schuld2021effect}
+\endrefsection
+\endinput
+

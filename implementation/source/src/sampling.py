@@ -79,7 +79,6 @@ def main():
     # 4. Load Parameters
     print(f"Loading parameters from {args.checkpoint}...")
     try:
-        # noise 인자는 현재 Qiskit 구현체에서 사용되지 않더라도 호환성을 위해 남겨둠
         circuit.load_best_params(args.checkpoint, noise=args.noise_factor)
         print("Loaded best parameters.")
     except FileNotFoundError:

@@ -6,6 +6,49 @@ import numpy as np
 # PennyLane
 import pennylane as qml
 
+
+def build_ano_observable(params, n_qubits):
+    """
+    Constructs a parametrized Hermitian matrix for ANO measurement based on Eq. (5)
+    in 'Quantum Super-Resolution by Adaptive Non-Local Observables'.
+    
+    Args:
+        params: Flat list/array of parameters.
+        n_qubits: Number of qubits (k-local). Matrix size will be 2^k x 2^k.
+    Returns:
+        Hermitian Matrix (numpy array)
+    """
+    dim = 2 ** n_qubits
+    matrix = np.zeros((dim, dim), dtype=np.complex128)
+    
+    # Param Index Tracker
+    idx = 0
+    
+    # 1. Fill Diagonal Elements (Real)
+    # params[0] to params[dim-1]
+    for i in range(dim):
+        matrix[i, i] = params[idx]
+        idx += 1
+        
+    # 2. Fill Off-Diagonal Elements (Complex) and Symmetrize
+    # We need to fill upper triangle, then copy conjugate to lower.
+    for i in range(dim):
+        for j in range(i + 1, dim):
+            # Real part
+            r_val = params[idx]
+            idx += 1
+            # Imaginary part
+            i_val = params[idx]
+            idx += 1
+            
+            val = r_val + 1j * i_val
+            matrix[i, j] = val          # Upper triangle
+            matrix[j, i] = np.conj(val) # Lower triangle (Hermitian property)
+            
+    return matrix
+
+
+
 class ComplexLeakyReLU(nn.Module):
     """LeakyReLU that acts independently on real and imaginary parts."""
     def __init__(self, negative_slope=0.01):
@@ -86,37 +129,18 @@ def ConvUnit(params, wires):
     qml.RZ(-np.pi/2, wires=wires[1])
     qml.CNOT(wires=[wires[1], wires[0]])
     
-    qml.RZ(params[idx], wires=wires[0]); idx += 1
-    qml.RY(params[idx], wires=wires[1]); idx += 1
+    qml.RZ(-2*params[idx] + np.pi/2, wires=wires[0]); idx += 1
+    qml.RY(-np.pi/2 + 2*params[idx], wires=wires[1]); idx += 1
     
     qml.CNOT(wires=[wires[0], wires[1]])
     
-    qml.RY(params[idx], wires=wires[1]); idx += 1
+    qml.RY(-2*params[idx] + np.pi/2, wires=wires[1]); idx += 1
     
     qml.CNOT(wires=[wires[1], wires[0]])
     qml.RZ(np.pi/2, wires=wires[0])
     
     return idx
 
-def MixingBlock_U3(params, wires):
-    """
-    [Improved] U3 Mixing
-    Simulates particle/information exchange between qubits.
-    Better for diffusion processes.
-    """
-    n = len(wires)
-    idx = 0
-    # 1. Global Rotation (Mix basis)
-    for i in range(n):
-        qml.U3(params[idx], params[idx+1], params[idx+2], wires=wires[i])
-        idx += 3
-    # 2. Entangling Layers - ring
-    for i in range(0, n-1, 2):
-        qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-    for i in range(1, n-1, 2):
-        qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-        
-    return idx
 
 def PhaseMixing(params, wires):
     n = len(wires)
@@ -124,36 +148,9 @@ def PhaseMixing(params, wires):
     for i in range(n-1, 0, -1):
         qml.CRZ(params[idx], wires=[wires[0], wires[i]])
         idx += 1
-    qml.QFT(wires=range(n-1))
+    qml.QFT(wires=range(n))
     return idx
 
-def MixingBlock(params, wires):
-    """
-    [Improved] XY Mixing
-    Simulates particle/information exchange between qubits.
-    Better for diffusion processes.
-    """
-    n = len(wires)
-    idx = 0
-    # 1. Global Rotation (Mix basis)
-    for i in range(n):
-        qml.RY(params[idx], wires=wires[i]); idx += 1
-
-    # 2. Entangling Layers
-    # Even pairs
-    for i in range(0, n-1, 2):
-        qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-        qml.RZ(params[idx], wires=wires[(i+1)%n])
-        qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-        idx += 1
-    for i in range(1, n-1, 2):
-        qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-        qml.RZ(params[idx], wires=wires[(i+1)%n])
-        qml.CNOT(wires=[wires[i], wires[(i+1)%n]])
-        idx += 1
-
-    
-    return idx
 
 
 class PennyLanePQC(nn.Module):
@@ -174,6 +171,9 @@ class PennyLanePQC(nn.Module):
         self.len_block_ancilla = self.params_per_rep_ancilla * reps
 
         # Total = Block1(N) + Block2(N+1) + Block3(N)
+        dim = 2 ** num_qubits
+        self.ano_weights = nn.Parameter(torch.randn(num_qubits**2, dim, dim, 2) * 0.1) # output_dim: num_qubits**2
+
         self.total_params = self.len_block_n + self.len_block_ancilla + self.len_block_n
 
         print(f"[Auto-Config] Total params to learn: {self.total_params}")
@@ -212,10 +212,7 @@ class PennyLanePQC(nn.Module):
         ptr += PhaseMixing(layer_params[ptr:], wires=wires)
 
             
-        # 3. Mixing
-        ptr += MixingBlock(layer_params[ptr:], wires=wires)
-        
-        
+
 
     def _count_params_per_rep(self, n_wires):
         """
@@ -244,15 +241,43 @@ class PennyLanePQC(nn.Module):
             self._circuit_ansatz(weights, range(n_wires))
             return qml.state()
         return circuit
+    
+    def _build_ano_matrix_torch(self, params, n_wires):
+        """
+        Constructs a Hermitian matrix from parameters using PyTorch.
+        Args:
+            params: Flat tensor of parameters. Size should be (2^n)^2.
+            n_wires: Number of qubits.
+        """
+        dim = 2 ** n_wires
+        
+        num_params = dim * dim * 2
+        
+        p_real = params[..., 0]
+        p_imag = params[..., 1]
+        
+        c_matrix = torch.complex(p_real, p_imag)
+        
+        # Hermitian: H = (M + M^dag) / 2
+        H = (c_matrix + c_matrix.conj().T) / 2
+        return H
 
+    
     def _create_qnode_expval(self, dev, n_wires):
-        """Returns expectation value QNode"""
+        """Returns expectation value QNode with Adaptive Non-Local Observables (ANO)"""
         @qml.qnode(dev, interface='torch', diff_method='backprop')
-        def circuit(inputs, weights):
+        def circuit(inputs, weights, ano_weights): 
             qml.StatePrep(inputs, wires=range(n_wires))
             self._circuit_ansatz(weights, range(n_wires))
-            # UNet의 decoder 입력 차원(N)에 맞추기 위해 PauliZ 측정
-            return [qml.expval(qml.PauliZ(i)) for i in range(n_wires)] + [qml.expval(qml.PauliY(i)) for i in range(n_wires)] + [qml.expval(qml.PauliX(i)) for i in range(n_wires)]
+            observables = []
+            # self.output_dim 만큼 반복하며 각각의 학습된 관측량 측정
+            # ano_weights shape: (output_dim, dim, dim, 2)
+            for i in range(len(ano_weights)):
+                # ano_weights[i] shape: (dim, dim, 2)
+                H = self._build_ano_matrix_torch(ano_weights[i], n_wires)
+                observables.append(qml.expval(qml.Hermitian(H, wires=range(n_wires))))
+            
+            return observables
         return circuit
 
     def forward(self, input_state_or_latent, all_weights):
@@ -308,7 +333,7 @@ class PennyLanePQC(nn.Module):
 
 
         # --- 5. Block 3 (Data Qubits) ---
-        final_out = self.qnode3(state2_norm, w3)
+        final_out = self.qnode3(state2_norm, w3, self.ano_weights)
         if isinstance(final_out, (list, tuple)):
             final_out = torch.stack(final_out, dim=1)    
         final_out = final_out.float()
@@ -362,7 +387,7 @@ class QuantumUNet(nn.Module):
         # --- [3] Decoder ---
         # Input: PQC Output (bottleneck_qubits) + Skip Connection (input_flat_dim)
         # PQC output size is typically 'bottleneck_qubits' (measurements)
-        self.pqc_output_dim = 3*bottleneck_qubits
+        self.pqc_output_dim = bottleneck_qubits**2
         self.dec1 = nn.Linear(self.pqc_output_dim + self.input_flat_dim, hidden_dim)
         self.act_dec1 = nn.ReLU()
         
