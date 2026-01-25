@@ -132,6 +132,8 @@
 \usepackage{url}
 %note that the hyperref package is currently incompatible with the baposter class
 
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Macros
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -140,14 +142,30 @@
 
 
 
-\usepackage[backend=biber,style=numeric,url=true]{biblatex}
-\addbibresource{bibliography.bib}
-\defbibheading{none}{}  % no name
-
-\usepackage{braket}
-
 \usepackage{graphicx}
 \usepackage{tikz}
+\usepackage{quantikz}
+\usepackage{pgfplots}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{braket}
+\usepackage{multicol}
+\usepackage{float}
+
+\usepackage[backend=biber,style=numeric,url=true]{biblatex}
+\addbibresource{bibliography.bib}
+
+\usepackage{hyperref}
+\usepackage{xurl} 
+\hypersetup{
+    colorlinks=true,
+    linkcolor=nustblue, 
+    urlcolor=nustblue,  
+    citecolor=nustblue,
+    breaklinks=true,   
+    pdfpagemode=UseNone
+}
+
 
 
 \usepackage{setspace}
@@ -208,22 +226,29 @@
 %the Eye Catcher (the logo on the left)
 {
   %this can be commented out or replaced by a company/department logo
-  \includegraphics[height=0.70\headerheight]{logos/Yonsei_physics_x4up.png}
+  \begin{tabular}{c}
+  \includegraphics[height=0.80\headerheight]{logos/qiskit.png} \\
+  \includegraphics[height=0.20\headerheight]{logos/IBM-Quantum.png}
+  \end{tabular}
 }
 %the poster title
-{\color{nustblue}\bf
-  25-1 QIYA IBM Learning Course
+{
+  {\color{nustblue} \bf \huge Enhancing Quantum Diffusion Model for Complex Image Generation} \\
+  \vspace{0.3em}
+  {\color{nustblue} \Large \it Qiskit Advocate Mentorship Program: 33}
 }
 %the author(s)
 {\small
-  \vspace{1em} Student, Jeongbin Jo\\
-  Dept.\ of Physics, College of Science, Yonsei Unversity \\
-  milk\_lime@naver.com (jeongbin033@yonsei.ac.kr)
+  \vspace{1em}
+  Jeongbin Jo$^1$, Santanam Wishal, Shah Md Khalil Ullah, Shan Kowalski \\
+  \vspace{0.3em}
+  $^1$\textit{Dept.\ of Physics, Yonsei University},
+  \texttt{jeongbin033@yonsei.ac.kr}
 }
 %the logo (the logo on the right)
 {
   %this can be commented out or replaced by a conference logo
-  \includegraphics[height=0.75\headerheight]{logos/QIYA_logo1.PNG}
+  \includegraphics[height=0.75\headerheight]{logos/qiskit.png}
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -231,172 +256,204 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{posterbox}[name=intro,column=0,row=0]{Introduction}
-\begin{itemize}
-  \item This poster presents the results of the 2025-1 QIYA (Quantum Informatics at Yonsei Academy) IBM Learning Course team project.
-  \item  We explored quantum computing topics such as VQA, VQE, VQD, QML, and QSR, based on materials from the \alert{IBM Learning Course}\cite{IBM}.
-  \item This poster highlights our implementation of variational quantum algorithms (VQAs) and explores advanced techniques such as Quantum Fisher Information analysis, Quantum Sampling Regression using Gaussian Processes, and surrogate-based optimization.
-  \item The full source code and results are available on our \alert{GitHub} repository.
-\end{itemize}
+\textbf{Qiskit Advocate Mentorship Program (QAMP)} is a program focused on bring new contributors into Qiskit open source software development where Qiskit advocates work on a 3-month projects under the guidance of mentors. It is an initiative within the \href{https://www.ibm.com/quantum/qiskit#advocates}{Qiskit advocate program} designed to support growth and collaboration within our vibrant community.
+
+Access the QAMP information deck \href{https://github.com/qiskit-advocate/qamp-2025/blob/main/QAMP_call.pdf}{here}.
 \end{posterbox}
 
-\begin{posterbox}[name=vqa,column=0,below=intro]{Variational Quantum Algorithm}
-\begin{itemize}
-    \item \textbf{Variational Quantum Algorithm (VQA)} is a hybrid approach that combines classical and quantum computing using variational methods.
-    \item The typical workflow of a VQA includes the following steps:
-    \begin{description}
-        \item[step 1] \textbf{Initialize the problem}
-        \item[step 2] \textbf{Prepare the ansatz} 
-        \begin{equation}
-        \begin{aligned}
-            \ket{0} \xrightarrow{U_R} U_R \ket{0} &= \ket{\rho} \xrightarrow{U_V(\vec{\theta})} U_A(\vec{\theta}) \ket{0} \\
-            &= U_V(\vec{\theta}) U_R \ket{0} \\
-            &= U_V(\vec{\theta}) \ket{\rho} \\
-            &= \ket{\psi(\vec{\theta})}
-        \end{aligned}
-        \end{equation}
-        \item[step 3] \textbf{Evaluate cost function} 
-        \begin{equation}
-            \braket{\hat{\mathcal{H}}}_\psi := \sum_{\lambda} p_\lambda \lambda = \bra{\psi} \hat{\mathcal{H}} \ket{\psi}
-        \end{equation}
-        \item[step 4] \textbf{Optimize the parameters to obtain results}
-        \begin{equation}
-            \vec{\boldsymbol{\theta}}_{t+1} = \vec{\boldsymbol{\theta}}_t - \eta \, \nabla \mathcal{C}(\boldsymbol{\vec\theta})
-        \end{equation}
-    \end{description}
-\end{itemize}
-\end{posterbox}
-
-\begin{posterbox}[name=qfim,column=0,below=vqa,above=bottom]{Quantum Fisher Information}
-\begin{itemize}
-    \item The \textbf{Quantum Fisher Information Matrix (QFIM)}\cite{meyer2021fisher} is the quantum counterpart of the classical Fisher information matrix. It quantifies how much information an observable random variable \(X\) carries about an unknown parameter \(\theta\) in the distribution that models \(X\).
-    \begin{multline}
-        \mathcal{F}_{ij} = 4\,\mathrm{Re} \Big[\braket{\partial_i \psi(\boldsymbol{\theta}) | \partial_j \psi(\boldsymbol{\theta})} \\
-        - \braket{\partial_i \psi(\boldsymbol{\theta}) | \psi(\boldsymbol{\theta})} \braket{\psi(\boldsymbol{\theta}) | \partial_j \psi(\boldsymbol{\theta})} \Big]
-    \end{multline}
-    
-    \item \textbf{FAdam}\cite{hwang2024fadam} is an optimizer based on the Fisher information, often referred to as the natural gradient. In this project, we investigated a quantum version of FAdam.
-    \begin{equation}
-        \vec{\boldsymbol{\theta}}_{t+1} = \vec{\boldsymbol{\theta}}_t - \eta \, \mathbf{F}^{-1} \nabla \mathcal{L}(\boldsymbol{\theta})
-    \end{equation}
-\end{itemize}
-\end{posterbox}
-
-
-\begin{posterbox}[name=implement,span=2,column=1,row=0]{Implementation}
-\begin{tikzpicture}[remember picture,overlay]
-    \node[anchor=north east, xshift=-1cm, yshift=-5.5cm] at (current page.north east) {
-        \includegraphics[width=2cm]{images/qr.png} %QR 넣기
-    };
-\end{tikzpicture}
-We implemented a variational eigensolver using the \alert{Quantum Sampling Regression (QSR)} framework in combination with a \alert{Gaussian process-based surrogate model}.
+\begin{posterbox}[name=encoding,column=0,below=intro]{Quantum Data Encoding}
 \begin{description}
-    \item[Ansatz] \texttt{TwoLocal(ry, entanglement=cz)}
-    \item[Observable] Arbitrary Hermitian operator
-    \item[Sampling] Sobol sequence (quasi-random sampling)
-    \item[Surrogate] Gaussian process regression
+  \item[Basis Encoding]:
+    \begin{equation*}
+      \ket{x} = \ket{b_1, b_2, \dots, b_P}, \quad b_i \in \{0, 1\}
+    \end{equation*}
+
+  \item[Amplitude Encoding]:
+    $n = \lceil \log_2 N \rceil$.
+
+    \begin{equation*}
+      \ket{\psi_x} = \frac{1}{\alpha}\sum_{i=1}^N x_i \ket{i}
+    \end{equation*}
+    
+    \begin{equation*}
+      \alpha = \sqrt{\sum_{i=1}^{N}|x_i|^2}
+    \end{equation*}
+    
+  \item[Angle Encoding]:
+    \begin{equation*}
+      \ket{\vec{x}} = \bigotimes_{k=1}^N R_Y(x_k)\ket{0} = 
+      \bigotimes_{k=1}^N \left( \cos\left(\frac{x_k}{2}\right)\ket{0} + \sin\left(\frac{x_k}{2}\right)\ket{1} \right)
+    \end{equation*} 
+    
+  \item[Phase Encoding]:
+    \begin{equation*}
+      \ket{\vec{x}} = \bigotimes_{k=1}^N P(x_k)\ket{+} = 
+      \frac{1}{\sqrt{2^N}} \bigotimes_{k=1}^N \left( \ket{0} + e^{i x_k}\ket{1} \right)  
+    \end{equation*}
+    
+  \item[Dense Angle Encoding]:
+    \begin{equation*}
+      \ket{x_k, x_l} = R_Z(x_l) R_Y(x_k)\ket{0} = \cos\left(\frac{x_k}{2}\right)\ket{0} + e^{i x_l} \sin\left(\frac{x_k}{2}\right)\ket{1} 
+    \end{equation*}
+
+    \begin{equation*}
+      \ket{\vec{x}} = \bigotimes_{k=1}^{N/2}\left( \cos{x_{2k-1}}\ket{0} + e^{ix_{2k}}\sin{x_{2k-1}\ket{1}} \right)
+    \end{equation*}
+
 \end{description}
+
 \end{posterbox}
 
-\begin{posterbox}[name=qsr,column=1,below=implement]{Quantum Sampling Regression}
-\begin{itemize}
-    \item \textbf{Quantum Sampling Regression (QSR)}\cite{rivero2020} is a variational algorithm that approximates a reference function using sampled parameter values.
-    
-    \item As the number of variational parameters increases, the number of required samples grows exponentially. Therefore, QSR is generally not efficient when used with high-dimensional ansätze.
-    
-    \item For sampling, we use \textbf{Sobol sequences}\cite{Sobol}, which are a type of quasi-random low-discrepancy sequence.
-\end{itemize}
+\begin{posterbox}[name=ansatz,column=0,below=encoding,above=bottom]{Parameterized Quantum Circuit}
 
-\begin{center}
-    \begin{minipage}[t]{0.48\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/pseudorandom.png}
-        \captionof{figure}{Pseudorandom}
-        \label{fig:pseudo}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[t]{0.48\linewidth}
-        \centering
-        \includegraphics[width=\linewidth]{images/sobol.png}
-        \captionof{figure}{Sobol sequence (quasi-random)}
-        \label{fig:sobol}
-    \end{minipage}
-\end{center}
+\begin{description}
+  \item[Optimal two-qubit decomposition]: 
+  
+  \textbf{Vatan-Williams} decomposition \cite{Vatan_2004}.
+  The circuit structure, depicted in Fig.~\ref{fig:interaction_block}, consists of three CNOT gates interleaved with parameterized single-qubit rotations. 
+  This configuration is capable of simulating the unitary operator $U = \exp(-i(\alpha \sigma_x \otimes \sigma_x + \beta \sigma_y \otimes \sigma_y + \gamma \sigma_z \otimes \sigma_z))$ up to local basis transformations. \\
+\end{description}
+
+\begin{minipage}{\linewidth}
+  \centering
+  \begin{quantikz}
+    \lstick{$q_0$} & \qw & \targ{} & \gate{R_z(\frac{\pi}{2}-2\gamma)} & \ctrl{1} & \qw & \targ{} & \gate{R_z(\frac{\pi}{2})} & \qw \\
+    \lstick{$q_1$} & \gate{R_z(-\frac{\pi}{2})} & \ctrl{-1} & \gate{R_y(2\alpha-\frac{\pi}{2})} & \targ{} & \gate{R_y(\frac{\pi}{2}-2\beta)} & \ctrl{-1} & \qw & \qw
+  \end{quantikz}
+  \captionof{figure}{This structure implements the optimal decomposition for arbitrary two-qubit entangling gates, characterized by the parameters $\alpha, \beta, \gamma$. Note the alternating CNOT direction and the specific rotation angles derived from the canonical decomposition.}
+  \label{fig:interaction_block}
+\end{minipage}
+
+
+
 \end{posterbox}
 
 
-\begin{posterbox}[name=gaussian,column=1,below=qsr, above=bottom]{Gaussian Process}
-\begin{itemize}
-    \item A \textbf{Gaussian Process (GP)}\cite{gaussian} is a nonparametric supervised learning method commonly used for \alert{regression} and \alert{probabilistic classification} tasks.
+\begin{posterbox}[name=diffusion,span=2,column=1,row=0]{Diffusion Process}
+  While classical diffusion models operate on probability distributions over classical data, 
+  Quantum Diffusion Models (QDMs) extend this concept to the Hilbert space of quantum states. 
+  The goal is to generate quantum states (density matrices) from a maximally mixed state.
 
-    \item A GP defines a distribution over functions, assuming that any finite set of function values follows a multivariate normal distribution. This makes GPs useful for modeling uncertainty and performing function approximation, especially with limited data.
+  
+  \textbf{Forward Process: Depolarizing Channel}
+  Instead of adding Gaussian noise, the forward process in QDM is typically modeled as a standard depolarizing channel acting on a density matrix $\rho$. 
+  For a system of $n$ qubits with dimension $d=2^n$, the state at step $t$ is given by:
 
-    \begin{equation}
-    \mathbb{E} \left[ e^{i \mathbf{s}^T (\mathbf{X} - \boldsymbol{\mu})} \right] = e^{- \frac{1}{2} \mathbf{s}^T \boldsymbol{\Sigma} \mathbf{s}}
-    \end{equation}
+  \begin{equation}
+    \rho_t = \mathcal{E}_t(\rho_{t-1}) = (1 - p_t)\rho_{t-1} + p_t \frac{I}{d}
+  \end{equation}
 
-    \begin{description}
-        \item[$\mathbf{X} \sim \mathcal{N}(\boldsymbol{\mu}, \boldsymbol{\Sigma})$] Multivariate normal distribution (vector form)
-        \item[$\boldsymbol{\Sigma}$] Covariance matrix
-        \item[$\mathbf{s} \in \mathbb{R}^n$] Coefficient vector
-    \end{description}
-\end{itemize}
+  where $p_t \in [0, 1]$ is the depolarization probability (noise schedule). 
+  Similar to the classical case, we can express $\rho_t$ directly from the initial state $\rho_0$. 
+  Let $\alpha_t = \prod_{s=1}^t (1 - p_s)$, then:
 
-\begin{center}
+  \begin{equation}
+    \rho_t = \alpha_t \rho_0 + (1 - \alpha_t) \frac{I}{d}
+  \end{equation}
+
+  As $t \to T$, $\alpha_T \to 0$, and the state converges to the maximally mixed state $\rho_T \approx \frac{I}{d}$, 
+  which contains no information about $\rho_0$.
+
+  \begin{minipage}{\linewidth}
     \centering
-    \includegraphics[width=0.85\linewidth]{images/image.png}
-    \captionof{figure}{Gaussian process}
-    \label{fig:gaussian}
-\end{center}
+    \includegraphics[width=\linewidth]{images/forward.png}   
+    \captionof{figure}{Forward process}
+    \label{fig:forward}
+  \end{minipage}
+\end{posterbox}
+
+
+\begin{posterbox}[name=denoising,column=1,below=diffusion]{Denoising Process}
+  \textbf{Reverse Process: Quantum Denoising}
+  The reverse process aims to restore the quantum state from the noise. 
+  This is modeled by a parameterized quantum circuit (PQC), denoted as a unitary operator $U(\theta)$. 
+  The discrete reverse step can be approximated as:
+
+  \begin{equation}
+    \rho_{t-1} \approx \mathcal{D}_\theta(\rho_t, t) = U(\theta_t) \rho_t U^\dagger(\theta_t)
+  \end{equation}
+
+  For more complex generative tasks, the reverse process may involve ancillary qubits and measurements to simulate non-unitary maps.
+
+  \textbf{Loss Function: Fidelity or Trace Distance}
+  Quantum models often use Fidelity or Hilbert-Schmidt distance to measure the closeness between the generated state and the target state. 
+  A common objective is to maximize the overlap with the target pure state $\ket{\psi}$:
+
+  \begin{equation}
+    \mathcal{L}(\theta) = 1 - \mathbb{E} \left[ \bra{\psi} \rho_{\text{gen}}(\theta) \ket{\psi} \right]
+  \end{equation}
+  Alternatively, for density matrices, we minimize the trace distance or maximize the quantum fidelity $F(\rho, \sigma) = (\text{tr}\sqrt{\sqrt{\rho}\sigma\sqrt{\rho}})^2$.
+
+  \begin{minipage}{\linewidth}
+    \centering
+    \includegraphics[width=0.55\linewidth]{images/sample.png}
+    \captionof{figure}{Sample of generation process in random time t.}
+    \label{fig:sample}
+  \end{minipage}
 \end{posterbox}
 
 
 
-\begin{posterbox}[name=result,column=2,below=implement]{Result}
-    \begin{itemize}
-        \item In terms of computational cost, the surrogate model is significantly cheaper than direct quantum evaluations in the NISQ era. Only a single quantum computation of steady-state observables is required, after which the surrogate model can be reused.
+\begin{posterbox}[name=architecture,column=1,below=denoising,above=bottom]{Architecture}
+We adopted bottleneck architecture Fig.~\ref{fig:quantumunet}, that commonly used for convolutional neural network(CNN) in machine learning.
 
-        \item The number of required samples when using Sobol sequences is a power of 2, i.e., $2^{\text{param}}$, where \textit{param} denotes the number of parameters. However, achieving higher resolution may require even more samples.
-    \end{itemize}
+\begin{minipage}{\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{images/QuantumUNet_Final_LR.png}
+  \captionof{figure}{Quantum Unet architecture}
+  \label{fig:quantumunet}
+\end{minipage}
 \end{posterbox}
 
-\begin{posterbox}[name=post,column=2,below=result]{Post Project}
-    QFIM-based sensitivity analysis, natural gradient optimization.  
-    Diffusion-inspired error-aware learning using inherent NISQ noise.  
-    Toward noise-leveraged quantum error mitigation.
+
+
+
+
+
+\begin{posterbox}[name=measurement,column=2,below=diffusion]{Measurement}
+\begin{itemize}
+  \item \textbf{ANO Measurement}
+  
+  \item \textbf{Expressibility based on Meyer-Wallach values} \cite{Meyer_2002}
+  For a given state $|\psi\rangle$, the MW measure is defined as the average purity of the single-qubit reduced density matrices:
+  \begin{equation}
+      Q(|\psi\rangle) = \frac{4}{n} \sum_{k=1}^{n} D(\iota_k(|\psi\rangle)) = \frac{4}{n} \sum_{k=1}^{n} \frac{1}{2} \left( 1 - \text{Tr}(\rho_k^2) \right)
+  \end{equation}
+  where $\rho_k = \text{Tr}_{\neg k}(|\psi\rangle\langle\psi|)$ is the reduced density matrix of the $k$-th qubit. The value $Q$ ranges from 0 (product states, unentangled) to 1 (maximally entangled, e.g., GHZ states).
+
+  We estimate the \textit{Entangling Capability} \cite{Sim_2019} of our ansatz by averaging $Q$ over an ensemble of states sampled with uniformly random parameters:
+  \begin{equation}
+      \bar{Q} = \frac{1}{S} \sum_{i=1}^{S} Q(|\psi(\theta_i)\rangle)
+  \end{equation}
+\end{itemize}
+\begin{minipage}{\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{images/expressibility.png}
+  \captionof{figure}{Visualization of the single-qubit reduced state distribution on the Bloch sphere generated by our ansatz with ANO.}
+  \label{fig:expressibility}
+\end{minipage}
+
 \end{posterbox}
 
-\begin{posterbox}[name=refs,column=2,below=post]{References}
+
+
+
+\begin{posterbox}[name=post,column=2,below=measurement]{Post Project}
+
+
+\end{posterbox}
+
+
+\begin{posterbox}[name=refs,column=2,below=post,above=bottom]{References}
 
 \begingroup
+%\raggedright
 \setlength\bibitemsep{0.2em}                 % 항목 간 간격 줄이기
 \setlength\baselineskip{0.4\baselineskip}   % 전체 줄 간격 줄이기
-\renewcommand*{\bibfont}{\small}             % 글자 크기도 소형화
+\renewcommand*{\bibfont}{\tiny}             % 글자 크기도 소형화
 \printbibliography[heading=none]
 \endgroup
 
 \end{posterbox}
-
-\begin{posterbox}[name=badge,column=2,below=refs,above=bottom]{Certificate}
-\begin{tikzpicture}
-    % 첫 번째 그림 (가장 아래, 가장 왼쪽)
-    \node[anchor=north west] at (0, 0.0)
-        {\includegraphics[width=0.45\linewidth]{certifications/basics-of-quantum-information.png}};
-
-    % 두 번째 그림 (조금 오른쪽 위)
-    \node[anchor=north west] at (1.333, 0.15)
-        {\includegraphics[width=0.45\linewidth]{certifications/fundamentals-of-quantum-algorithms.png}};
-
-    % 세 번째 그림 (더 오른쪽 위)
-    \node[anchor=north west] at (2.666, 0.3)
-        {\includegraphics[width=0.45\linewidth]{certifications/quantum-machine-learning.png}};
-
-    % 네 번째 그림 (가장 오른쪽, 가장 위)
-    \node[anchor=north west] at (4.0, 0.45)
-        {\includegraphics[width=0.45\linewidth]{certifications/variational-algorithm-design.png}};
-\end{tikzpicture}
-\end{posterbox}
-
-
-
 \end{poster}
 \end{document}

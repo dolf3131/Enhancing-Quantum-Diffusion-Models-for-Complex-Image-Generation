@@ -170,7 +170,10 @@
 %\newcommand{\baposter@fontscale}{0.292}
 
 % A1
-\newcommand{\baposter@fontscale}{0.41714}
+%\newcommand{\baposter@fontscale}{0.41714}
+
+% A2
+\newcommand{\baposter@fontscale}{0.5838}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Zoom
@@ -264,41 +267,68 @@
 
 
 
-\setlength{\baposter@basepaperwidth} {\baposter@fontscale\baposter@finalpaperwidth }
-\setlength{\baposter@basepaperheight}{\baposter@fontscale\baposter@finalpaperheight}
-\setlength{\baposter@basemargin}     {\baposter@fontscale\baposter@finalmargin}
+% \setlength{\baposter@basepaperwidth} {\baposter@fontscale\baposter@finalpaperwidth }
+% \setlength{\baposter@basepaperheight}{\baposter@fontscale\baposter@finalpaperheight}
+% \setlength{\baposter@basemargin}     {\baposter@fontscale\baposter@finalmargin}
+% \newlength{\baposter@basemarginright}
+% \setlength{\baposter@basemarginright}{\baposter@basemargin}
+% \addtolength{\baposter@basemarginright}{-\baposter@fontscale\baposter@movebody}
+% \newlength{\baposter@basemarginleft}
+% \setlength{\baposter@basemarginleft}{\baposter@basemargin}
+% \addtolength{\baposter@basemarginleft}{\baposter@fontscale\baposter@movebody}
+
+% \typeout{Paperwidth=\the\baposter@finalpaperwidth}
+% \typeout{Paperheight=\the\baposter@finalpaperheight}
+% \typeout{BasePaperwidth=\the\baposter@basepaperwidth}
+% \typeout{BasePaperheight=\the\baposter@basepaperheight}
+% \usepackage[
+%    paperwidth=\baposter@basepaperwidth,
+%    paperheight=\baposter@basepaperheight,
+%    tmargin=\baposter@basemargin,
+%    bmargin=\baposter@basemargin,
+%    lmargin=\baposter@basemarginleft,
+%    rmargin=\baposter@basemarginright,
+%    ]{geometry} 
+
+% \usepackage{pgfpages}
+% \if@landscape
+% \if@geometryKnowsThisSize
+% \pgfpagesuselayout{resize to}[physical paper width=\baposter@finalpaperheight,physical paper height=\baposter@finalpaperwidth]
+% \else
+% \pgfpagesuselayout{resize to}[physical paper width=\baposter@finalpaperwidth,physical paper height=\baposter@finalpaperheight]
+% \fi
+% \else
+% \pgfpagesuselayout{resize to}[physical paper width=\baposter@finalpaperwidth,physical paper height=\baposter@finalpaperheight]
+% \fi
+
+\RequirePackage{pgf}
+\pgfmathsetmacro{\baposter@targetfontsize}{12 / \baposter@fontscale}
+
+% 2. 계산된 크기로 폰트 설정 (scrextend 패키지 활용)
+\RequirePackage[fontsize=\baposter@targetfontsize pt]{scrextend}
+
+% 3. 용지 크기를 줄이지 않고 '최종 크기' 그대로 설정
+\setlength{\baposter@basepaperwidth} {\baposter@finalpaperwidth}
+\setlength{\baposter@basepaperheight}{\baposter@finalpaperheight}
+\setlength{\baposter@basemargin}     {\baposter@finalmargin}
+
 \newlength{\baposter@basemarginright}
 \setlength{\baposter@basemarginright}{\baposter@basemargin}
-\addtolength{\baposter@basemarginright}{-\baposter@fontscale\baposter@movebody}
+\addtolength{\baposter@basemarginright}{-\baposter@movebody}
 \newlength{\baposter@basemarginleft}
 \setlength{\baposter@basemarginleft}{\baposter@basemargin}
-\addtolength{\baposter@basemarginleft}{\baposter@fontscale\baposter@movebody}
+\addtolength{\baposter@basemarginleft}{\baposter@movebody}
 
-\typeout{Paperwidth=\the\baposter@finalpaperwidth}
-\typeout{Paperheight=\the\baposter@finalpaperheight}
-\typeout{BasePaperwidth=\the\baposter@basepaperwidth}
-\typeout{BasePaperheight=\the\baposter@basepaperheight}
-\usepackage[
+\RequirePackage[
    paperwidth=\baposter@basepaperwidth,
    paperheight=\baposter@basepaperheight,
-   tmargin=\baposter@basemargin,
-   bmargin=\baposter@basemargin,
-   lmargin=\baposter@basemarginleft,
-   rmargin=\baposter@basemarginright,
-   ]{geometry} 
-
-\usepackage{pgfpages}
-\if@landscape
-\if@geometryKnowsThisSize
-\pgfpagesuselayout{resize to}[physical paper width=\baposter@finalpaperheight,physical paper height=\baposter@finalpaperwidth]
-\else
-\pgfpagesuselayout{resize to}[physical paper width=\baposter@finalpaperwidth,physical paper height=\baposter@finalpaperheight]
-\fi
-\else
-\pgfpagesuselayout{resize to}[physical paper width=\baposter@finalpaperwidth,physical paper height=\baposter@finalpaperheight]
-\fi
-
-
+   left=\baposter@basemarginleft,
+   right=\baposter@basemarginright,
+   top=\baposter@basemargin,
+   bottom=\baposter@basemargin,
+   noheadfoot,     % [중요] 머리말/꼬리말 공간을 없애 위아래 여백 균형을 맞춤
+   centering       % [중요] 텍스트 영역을 종이 정중앙으로 강제 정렬
+   ]{geometry}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  Default functions for borders/backgrounds
@@ -1034,7 +1064,8 @@
   %% Poster Background%
   \baposterPosterDrawBackground{bgColorOne}{bgColorTwo}%
   %% Poster header/title
-  \hspace{-1.5em}%
+  %\hspace{-0.8em}%
+  \noindent
   \begin{tikzpicture}[inner sep=0pt,outer sep=0pt,line width=0.05em]%
     \useasboundingbox (0em,0em) rectangle(\textwidth,\textheight);%
     \path[shape=coordinate]%
