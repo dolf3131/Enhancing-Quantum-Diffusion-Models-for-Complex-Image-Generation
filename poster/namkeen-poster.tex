@@ -412,7 +412,9 @@ We adopted bottleneck architecture Fig.~\ref{fig:quantumunet}, that commonly use
 
 \begin{posterbox}[name=measurement,column=2,below=diffusion]{Measurement}
 \begin{itemize}
-  \item \textbf{ANO Measurement}
+  \item \textbf{ANO Measurement}: \textit{Adaptive Non-Local Observable (ANO)} framework \cite{lin2026quantumsuperresolutionadaptivenonlocal}. 
+  Instead of fixed operators, we employ a set of trainable Hermitian observables $\{H_k\}_{k=1}^{K}$ that act on the entire qubit register.
+
   
   \item \textbf{Expressibility based on Meyer-Wallach values} \cite{Meyer_2002}
   For a given state $|\psi\rangle$, the MW measure is defined as the average purity of the single-qubit reduced density matrices:
@@ -438,13 +440,8 @@ We adopted bottleneck architecture Fig.~\ref{fig:quantumunet}, that commonly use
 
 
 
-\begin{posterbox}[name=post,column=2,below=measurement]{Post Project}
 
-
-\end{posterbox}
-
-
-\begin{posterbox}[name=refs,column=2,below=post,above=bottom]{References}
+\begin{posterbox}[name=refs,column=2,below=measurement,above=bottom]{References}
 
 \begingroup
 %\raggedright
