@@ -143,14 +143,75 @@ def ConvUnit(params, wires):
 
 
 def PhaseMixing(params, wires):
+    """
+    1D Cluster State Layer + Local Rotations
+    - Creates NN entanglement via CZ chain
+    - Provides spatial adaptivity via per-qubit RX rotations
+    """
     n = len(wires)
     idx = 0
-    for i in range(n-1, 0, -1):
-        qml.CRZ(params[idx], wires=[wires[0], wires[i]])
+    for i in range(n):
+        qml.Hadamard(wires[i])
+    for i in range(0, n-1, 1):
+        qml.CZ(wires=[wires[i], wires[i+1]])
+    for i in range(n):
+        qml.RX(params[idx], wires=wires[i])
         idx += 1
-    qml.QFT(wires=range(n))
     return idx
 
+def GroverMixer(params, wires):
+    """
+    Optimized Parameterized Grover Mixer using DiagonalQubitUnitary.
+    Returns: Number of parameters consumed (1).
+
+    Operator: U(beta) = H^N * (I - (1 - e^(-i*beta))|0><0|) * H^N
+    """
+    # params[0] is beta
+    beta = params[0]
+    n_wires = len(wires)
+    
+    # 1. Superposition (Hadamard Layer)
+    for wire in wires:
+        qml.Hadamard(wires=wire)
+        
+    # 2. Optimized Parameterized Phase Shift on |0...0>
+    dim = 2 ** n_wires
+    
+    # PyTorch Tensor
+    if isinstance(beta, torch.Tensor):
+        device = beta.device
+        
+        if beta.ndim == 0:
+            # Case 1: Unbatched (Scalar)
+            # coeffs: (Dim,)
+            coeffs = torch.ones(dim, dtype=torch.complex64, device=device)
+            coeffs = torch.cat([torch.exp(1j * beta).unsqueeze(0), coeffs[1:]])
+            
+        else:
+            # Case 2: Batched (Vector) -> (Batch, Dim)
+            # beta: (Batch,)
+            batch_size = beta.shape[0]
+            
+            # (Batch, Dim-1)
+            ones = torch.ones((batch_size, dim - 1), dtype=torch.complex64, device=device)
+            
+            # Phase factor: (Batch, 1)
+            phase = torch.exp(1j * beta).view(batch_size, 1)
+            
+            coeffs = torch.cat([phase, ones], dim=1)
+        
+    else: # NumPy fallback
+        coeffs = np.ones(dim, dtype=np.complex128)
+        coeffs[0] = np.exp(1j * beta)
+
+    # (2) Apply Diagonal Unitary
+    qml.DiagonalQubitUnitary(coeffs, wires=wires)
+        
+    # 3. Restore Basis (Hadamard Layer)
+    for wire in wires:
+        qml.Hadamard(wires=wire)
+    
+    return 1
 
 
 class PennyLanePQC(nn.Module):
@@ -199,7 +260,7 @@ class PennyLanePQC(nn.Module):
         ptr = 0
         
         # 1. Conv Even (3 params -> or 9 params)
-        n_conv = 3 # IsingZZ 등으로 바꾸면 이 숫자만 9로 변경 등
+        n_conv = 3 
         for i in range(0, n_wires-1, 2):
             ConvUnit(layer_params[ptr:], wires=[wires[i], wires[(i+1)%n_wires]])
             ptr += n_conv
@@ -220,7 +281,6 @@ class PennyLanePQC(nn.Module):
         probe = WeightProbe()
         wires = range(n_wires)
         
-        # 실제 회로 구성 함수를 돌려서 파라미터가 몇 개 쓰이는지 체크
         self._layer_ansatz(probe, wires)
             
         return probe.max_idx + 1
@@ -270,7 +330,6 @@ class PennyLanePQC(nn.Module):
             qml.StatePrep(inputs, wires=range(n_wires))
             self._circuit_ansatz(weights, range(n_wires))
             observables = []
-            # self.output_dim 만큼 반복하며 각각의 학습된 관측량 측정
             # ano_weights shape: (output_dim, dim, dim, 2)
             for i in range(len(ano_weights)):
                 # ano_weights[i] shape: (dim, dim, 2)
@@ -300,7 +359,6 @@ class PennyLanePQC(nn.Module):
         w3 = all_weights[:, end2:]
 
         # Reshape & Transpose (Batch, Reps*Params) -> (Reps, Params, Batch)
-        # 여기서 각 블록에 맞는 params_per_rep을 사용해야 합니다.
         w1 = w1.reshape(batch_size, self.reps, self.params_per_rep_n).permute(1, 2, 0)
         w2 = w2.reshape(batch_size, self.reps, self.params_per_rep_ancilla).permute(1, 2, 0)
         w3 = w3.reshape(batch_size, self.reps, self.params_per_rep_n).permute(1, 2, 0)
@@ -372,7 +430,6 @@ class QuantumUNet(nn.Module):
         self.pqc_input_norm = nn.LayerNorm(self.pqc_input_dim)
 
         # --- [2] Quantum Bottleneck (Ancilla PQC) ---
-        # PQC 정의 (AncillaPennyLanePQC 사용)
         self.pqc_layer = PennyLanePQC(num_qubits=bottleneck_qubits, reps=layers, activation=activation)
 
         # Time-dependent Weights for PQC
@@ -400,13 +457,11 @@ class QuantumUNet(nn.Module):
             t: (Batch,) Tensor containing time steps (1 to T)
         """
         # 1. Input Preparation
-        # input shape이 (Batch, Dim) 이라고 가정 (Complex Type)
         if input.is_complex():
             x_real = input.real
             x_imag = input.imag
             x_flat = torch.cat([x_real, x_imag], dim=-1) # (Batch, 2*Dim)
         else:
-            # 이미 펼쳐져 있거나 실수형인 경우 처리 (상황에 따라 조정)
             x_flat = input 
 
         batch_size = x_flat.shape[0]
@@ -432,7 +487,7 @@ class QuantumUNet(nn.Module):
             # Indexing: t-1 (0 ~ T-1)
             # self.pqc_weights: (T, Params)
             t_idx = (t - 1).long()
-            t_idx = torch.clamp(t_idx, 0, self.T - 1) # 안전장치
+            t_idx = torch.clamp(t_idx, 0, self.T - 1)
             selected_weights = self.pqc_weights[t_idx]
 
         # --- PQC Execution ---

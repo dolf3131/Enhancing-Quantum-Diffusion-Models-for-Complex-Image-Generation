@@ -248,7 +248,7 @@
 %the logo (the logo on the right)
 {
   %this can be commented out or replaced by a conference logo
-  \includegraphics[height=0.75\headerheight]{logos/qiskit.png}
+  \includegraphics[height=0.75\headerheight]{logos/github.png}
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -307,7 +307,7 @@ Access the QAMP information deck \href{https://github.com/qiskit-advocate/qamp-2
 \begin{posterbox}[name=ansatz,column=0,below=encoding,above=bottom]{Parameterized Quantum Circuit}
 
 \begin{description}
-  \item[Optimal two-qubit decomposition]: 
+  \item[Optimal two-qubit decomposition] 
   
   \textbf{Vatan-Williams} decomposition \cite{Vatan_2004}.
   The circuit structure, depicted in Fig.~\ref{fig:interaction_block}, consists of three CNOT gates interleaved with parameterized single-qubit rotations. 
@@ -323,6 +323,17 @@ Access the QAMP information deck \href{https://github.com/qiskit-advocate/qamp-2
   \captionof{figure}{This structure implements the optimal decomposition for arbitrary two-qubit entangling gates, characterized by the parameters $\alpha, \beta, \gamma$. Note the alternating CNOT direction and the specific rotation angles derived from the canonical decomposition.}
   \label{fig:interaction_block}
 \end{minipage}
+
+\begin{description}
+  \item[Global Information Propagation]
+  
+  To achieve this efficiently, we employ a \textit{Phase Mixing} layer inspired by 1D Cluster States (or Graph States) \cite{raussendorf2001one}.
+\end{description}
+
+
+\begin{equation}
+  U_{\text{Mix}}(\phi) = \left( \bigotimes_{j=1}^{N} R_X(\phi_j) \right) \left( \prod_{j=1}^{N-1} CZ_{(j, j+1)} \right) H^{\otimes N}
+\end{equation}
 
 
 

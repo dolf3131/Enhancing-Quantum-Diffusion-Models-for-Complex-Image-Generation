@@ -264,10 +264,12 @@ Based on recent surveys and specific applications in diffusion models, we catego
 \subsection{General Variational Ansatzes}
 \begin{itemize}
     \item \textbf{Hardware-Efficient Ansatz (HEA):} 
-    Designed to minimize circuit depth and gate count on NISQ devices, HEA utilizes a layered structure of parameterized single-qubit rotations followed by entangling gates (e.g., CNOTs) tailored to the specific connectivity of the quantum hardware \cite{guo2024patterns}. While it offers high implementability, it is known to suffer from barren plateaus if not carefully initialized.
+    Designed to minimize circuit depth and gate count on NISQ devices, HEA utilizes a layered structure of parameterized single-qubit rotations followed by entangling gates (e.g., CNOTs) tailored to the specific connectivity of the quantum hardware \cite{guo2024patterns}. 
+    While it offers high implementability, it is known to suffer from barren plateaus if not carefully initialized.
     
     \item \textbf{Hamiltonian Variational Ansatz (HVA):} 
-    Inspired by the Quantum Approximate Optimization Algorithm (QAOA) and adiabatic quantum computation, HVA constructs the ansatz based on the problem Hamiltonian. It is particularly effective for physics-inspired problems but introduces a hierarchical structure to manage complexity \cite{guo2024patterns}.
+    Inspired by the Quantum Approximate Optimization Algorithm (QAOA) and adiabatic quantum computation, HVA constructs the ansatz based on the problem Hamiltonian. 
+    It is particularly effective for physics-inspired problems but introduces a hierarchical structure to manage complexity \cite{guo2024patterns}.
 \end{itemize}
 
 \subsection{Ansatzes for Quantum Machine Learning and Vision}
@@ -275,7 +277,8 @@ For high-dimensional data such as images, specialized ansatzes inspired by tenso
 
 \begin{itemize}
     \item \textbf{Quantum Convolutional Neural Network (QCNN):} 
-    QCNN adapts the structure of classical CNNs to the quantum domain. It consists of alternating convolutional layers (quasilocal unitary evolutions) and pooling layers (measurements or partial traces) to hierarchically reduce dimensionality while extracting features \cite{guo2024patterns}. This structure effectively captures spatial correlations, making it suitable for image generation tasks.
+    QCNN adapts the structure of classical CNNs to the quantum domain. It consists of alternating convolutional layers (quasilocal unitary evolutions) and pooling layers (measurements or partial traces) to hierarchically reduce dimensionality while extracting features \cite{guo2024patterns}. 
+    This structure effectively captures spatial correlations, making it suitable for image generation tasks.
     
     \item \textbf{Multiscale Entanglement Renormalization Ansatz (MERA):} 
     Originally designed for simulating quantum many-body systems, MERA represents quantum states using a hierarchical tensor network. It efficiently captures correlations at different length scales, which is analogous to the feature extraction process in deep learning \cite{guo2024patterns}.
@@ -283,9 +286,11 @@ For high-dimensional data such as images, specialized ansatzes inspired by tenso
 
 \subsection{Optimal General Two-Qubit Ansatz (Vatan-Williams Decomposition)}
 
-We adopt the optimal quantum circuit decomposition for general two-qubit interactions as proposed by Vatan and Williams \cite{Vatan_2004}. Specifically, we utilize the explicit circuit construction for the non-local interaction block $N(\alpha, \beta, \gamma)$, which is the core component of the ansatz.
+We adopt the optimal quantum circuit decomposition for general two-qubit interactions as proposed by Vatan and Williams \cite{Vatan_2004}. 
+Specifically, we utilize the explicit circuit construction for the non-local interaction block $N(\alpha, \beta, \gamma)$, which is the core component of the ansatz.
 
-The circuit structure, depicted in Fig.~\ref{fig:interaction_block}, consists of three CNOT gates interleaved with parameterized single-qubit rotations. This configuration is capable of simulating the unitary operator $U = \exp(-i(\alpha \sigma_x \otimes \sigma_x + \beta \sigma_y \otimes \sigma_y + \gamma \sigma_z \otimes \sigma_z))$ up to local basis transformations.
+The circuit structure, depicted in Fig.~\ref{fig:interaction_block}, consists of three CNOT gates interleaved with parameterized single-qubit rotations. 
+This configuration is capable of simulating the unitary operator $U = \exp(-i(\alpha \sigma_x \otimes \sigma_x + \beta \sigma_y \otimes \sigma_y + \gamma \sigma_z \otimes \sigma_z))$ up to local basis transformations.
 
 \begin{figure}[h]
     \centering
@@ -299,37 +304,21 @@ The circuit structure, depicted in Fig.~\ref{fig:interaction_block}, consists of
 
 The parameters $\alpha, \beta, \gamma$ serve as the learnable weights of the quantum diffusion model, allowing the network to capture complex correlations between features represented by qubits $q_0$ and $q_1$.
 
-\subsection{Global Correlation and Phase Mixing}
+\subsection{Global Information Propagation: 1D Cluster State Mixing}
+While the convolutional layer handles local correlations, a mechanism is required to propagate information globally across the qubit register. 
+To achieve this efficiently, we employ a \textit{Phase Mixing} layer inspired by 1D Cluster States (or Graph States) \cite{raussendorf2001one}.
 
-While the convolutional layers capture local spatial dependencies, generating high-fidelity images requires the model to understand global structures and high-frequency details. To address this, we introduce a \textit{Phase Mixing} block designed to enhance the expressivity of the ansatz in the frequency domain \cite{schuld2021effect}.
-
-The Phase Mixing block consists of two stages:
+This layer, $U_{\text{Mix}}$, consists of three steps:
 \begin{enumerate}
-    \item \textbf{Star-Topology Entanglement:} We apply a series of Controlled-Rotation $Z$ ($CRZ$) gates. As shown in the code implementation, the first qubit ($q_0$) acts as a central node (control), interacting with all other qubits ($q_i$) via parameterized rotations. This creates a "star" connectivity graph, efficiently distributing information from the central feature to the entire register.
-    \item \textbf{Quantum Fourier Transform (QFT):} Following the entanglement, a QFT operation is applied to the register. This transforms the encoded information from the computational basis to the Fourier basis, effectively mixing the local correlations into global phase information \cite{nielsen2010quantum}.
+    \item \textbf{Superposition Initialization:} A layer of Hadamard gates ($H^{\otimes N}$) transforms the basis states into a uniform superposition, maximizing the parallel processing capability.
+    \item \textbf{Linear Entanglement Chain:} We apply a sequence of Controlled-Phase ($CZ$) gates between adjacent qubits. This creates a 1D cluster state backbone, establishing a linear graph of entanglement that serves as a channel for information flow.
+    \item \textbf{Spatial Adaptivity:} Finally, a layer of parameterized rotation gates $R_X(\phi_i)$ is applied to each qubit. Unlike global mixing strategies (e.g., Grover Mixer) that apply a uniform operation, these individual rotations allow the model to learn spatially adaptive weights, emphasizing specific regions of the latent space (e.g., distinguishing object boundaries from background).
 \end{enumerate}
 
-The circuit diagram for this block is illustrated in Fig.~\ref{fig:phase_mixing}.
-
-\begin{figure}[h]
-    \centering
-    \begin{quantikz}
-        \lstick{$q_0$} & \ctrl{1} & \ctrl{2} & \qw & \dots & \ctrl{3} & \gate[4, disable auto height]{QFT} & \qw \\
-        \lstick{$q_1$} & \gate{R_z(\phi_1)} & \qw & \qw & \dots & \qw & \qw & \qw \\
-        \lstick{$q_2$} & \qw & \gate{R_z(\phi_2)} & \qw & \dots & \qw & \qw & \qw \\
-        \vdots & & & & \ddots & & & \\
-        \lstick{$q_{n-1}$} & \qw & \qw & \qw & \dots & \gate{R_z(\phi_{n-1})} & \qw & \qw
-    \end{quantikz}
-    \caption{The \textit{Phase Mixing} architecture. It employs a star-topology interaction where the first qubit controls parameterized $R_z$ rotations on all other qubits, followed by a Quantum Fourier Transform (QFT) to enforce global mixing. This structure allows the model to learn complex frequency-domain features essential for image sharpness.}
-    \label{fig:phase_mixing}
-\end{figure}
-
-Mathematically, this operation can be expressed as:
+Mathematically, the mixing unitary is expressed as:
 \begin{equation}
-    U_{\text{mix}}(\vec{\phi}) = \text{QFT} \cdot \prod_{i=1}^{n-1} CRZ_{0 \to i}(\phi_i)
+    U_{\text{Mix}}(\phi) = \left( \bigotimes_{j=1}^{N} R_X(\phi_j) \right) \left( \prod_{j=1}^{N-1} CZ_{(j, j+1)} \right) H^{\otimes N}
 \end{equation}
-where $CRZ_{c \to t}(\phi) = |0\rangle\langle 0|_c \otimes I_t + |1\rangle\langle 1|_c \otimes R_z(\phi)_t$.
-
 
 
 \section{Adaptive Non-Local Measurement}
@@ -351,7 +340,7 @@ This construction guarantees the Hermiticity ($H = H^\dagger$) required for vali
 A key advantage of our approach is the ability to decouple the output feature dimension $K$ from the number of physical qubits $n$. By configuring $K \ge n$, we can extract an over-complete set of features from the latent quantum state $\rho = |\psi(\theta)\rangle\langle\psi(\theta)|$. 
 The output vector $\mathbf{y} \in \mathbb{R}^K$ fed into the classical decoder is given by:
 \begin{equation}
-    y_k = \langle \psi(\theta) | H_k(\phi_k) | \psi(\theta) \rangle = \text{Tr}(\rho H_k(\phi_k)), \quad k=1, \dots, K
+    y_k = \bra{\psi(\theta)} H_k(\phi_k) \ket{\psi(\theta)} = \text{Tr}(\rho H_k(\phi_k)), \quad k=1, \dots, K
 \end{equation}
 By jointly training the circuit parameters $\theta$ and the measurement parameters $\phi$, the model learns to construct "quantum lenses" that focus on the specific sub-spaces containing the most relevant features for image reconstruction, such as high-frequency edge details.
 
@@ -376,8 +365,8 @@ By jointly training the circuit parameters $\theta$ and the measurement paramete
             
             % Arrows
             \draw[arrow] (input) -- (encoder);
-            \draw[arrow] (encoder) -- node[above] {$|\psi_0\rangle$} (ansatz);
-            \draw[arrow] (ansatz) -- node[above] {$|\psi(\theta)\rangle$} (ano);
+            \draw[arrow] (encoder) -- node[above] {$\ket{\psi_0}$} (ansatz);
+            \draw[arrow] (ansatz) -- node[above] {$\ket{\psi(\theta)}$} (ano);
             \draw[arrow] (ano) -- node[above] {Measure} (output);
             
             % Annotations for Learnable Params
@@ -413,7 +402,7 @@ These metrics ensure that our circuit is sufficiently expressive to model comple
 Expressibility measures the ability of a PQC to explore the Hilbert space. 
 We quantify this by comparing the distribution of state fidelities generated by our ansatz against the distribution expected from an ensemble of Haar-random states (which represents the maximally expressive uniform distribution).
 
-Let $F = |\langle \psi_{\theta} | \psi_{\phi} \rangle|^2$ be the fidelity between two states sampled from the PQC with random parameters $\theta, \phi$. 
+Let $F = |\braket{\psi_{\theta} | \psi_{\phi}}|^2$ be the fidelity between two states sampled from the PQC with random parameters $\theta, \phi$. 
 The probability density function (PDF) of fidelities for Haar-random states in an $N$-dimensional Hilbert space ($N=2^n$) is given by $P_{\text{Haar}}(F) = (N-1)(1-F)^{N-2}$.
 
 The expressibility $E$ is defined as the Kullback-Leibler (KL) divergence between the PQC's fidelity distribution $P_{\text{PQC}}(F)$ and the analytical Haar distribution $P_{\text{Haar}}(F)$:
@@ -427,15 +416,15 @@ In our experiments, we approximate this integral using a discretized histogram o
 \subsection{Entangling Capability via Meyer-Wallach Measure}
 
 To verify the circuit's ability to generate multi-partite entanglement—a crucial feature for capturing global dependencies in image data—we employ the Meyer-Wallach (MW) measure \cite{Meyer_2002} $Q$. 
-For a given state $|\psi\rangle$, the MW measure is defined as the average purity of the single-qubit reduced density matrices:
+For a given state $\ket{\psi}$, the MW measure is defined as the average purity of the single-qubit reduced density matrices:
 \begin{equation}
-    Q(|\psi\rangle) = \frac{4}{n} \sum_{k=1}^{n} D(\iota_k(|\psi\rangle)) = \frac{4}{n} \sum_{k=1}^{n} \frac{1}{2} \left( 1 - \text{Tr}(\rho_k^2) \right)
+    Q(\ket{\psi}) = \frac{4}{n} \sum_{k=1}^{n} D(\iota_k(\ket{\psi})) = \frac{4}{n} \sum_{k=1}^{n} \frac{1}{2} \left( 1 - \text{Tr}(\rho_k^2) \right)
 \end{equation}
-where $\rho_k = \text{Tr}_{\neg k}(|\psi\rangle\langle\psi|)$ is the reduced density matrix of the $k$-th qubit. The value $Q$ ranges from 0 (product states, unentangled) to 1 (maximally entangled, e.g., GHZ states).
+where $\rho_k = \text{Tr}_{\neg k}(\ket{\psi}\bra{\psi})$ is the reduced density matrix of the $k$-th qubit. The value $Q$ ranges from 0 (product states, unentangled) to 1 (maximally entangled, e.g., GHZ states).
 
 We estimate the \textit{Entangling Capability} \cite{Sim_2019} of our ansatz by averaging $Q$ over an ensemble of states sampled with uniformly random parameters:
 \begin{equation}
-    \bar{Q} = \frac{1}{S} \sum_{i=1}^{S} Q(|\psi(\theta_i)\rangle)
+    \bar{Q} = \frac{1}{S} \sum_{i=1}^{S} Q(\ket{\psi(\theta_i)})
 \end{equation}
 A high $\bar{Q}$ value confirms that our \textit{ConvUnit} and \textit{PhaseMixing} layers successfully distribute information across the qubit register, facilitating the "global mixing" required for high-resolution image synthesis.
 
