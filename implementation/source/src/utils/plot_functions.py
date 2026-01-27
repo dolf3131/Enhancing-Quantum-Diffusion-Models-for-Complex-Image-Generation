@@ -4,6 +4,8 @@ import math
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+import os
+
 
 from src.models.ansatzes import QuantumUNet
 from src.utils.training_functions import assemble_input
@@ -171,3 +173,97 @@ def log_generated_samples(
     # Add to TensorBoard
     writer.add_figure('Generated samples', fig, global_step=epoch)
     plt.close(fig)
+
+def plot_denoising_evolution_no_labels(model, num_qubits, T, device, writer, epoch=None):
+    """
+    Plots the denoising evolution for 10 random samples.
+    (Since the model is unconditional, these rows represent random samples, not specific digits 0-9).
+    
+    Rows: Sample 0-9
+    Columns: Time steps (from T to 0)
+    """
+    model.eval()
+    
+    # We generate 10 random samples
+    num_samples = 10
+    dim = 2 ** num_qubits
+    side = int(math.isqrt(dim)) # ex: 16 (for 8 qubits)
+    
+    # Define snapshots to visualize (all T steps or a subset)
+    num_snapshots = T
+    snapshot_timesteps = torch.linspace(T-1, 0, num_snapshots).int().tolist()
+    
+    history = [] 
+
+    with torch.no_grad():
+        # 1. Initialize Random Noise (Batch=10, Dim, 2)
+        current_state = torch.view_as_complex(torch.randn(num_samples, dim, 2, device=device)).to(torch.complex64)
+        
+        # 2. Backpropagation Loop (T-1 -> 0)
+        for t in range(T - 1, -1, -1):
+            
+            # Save snapshot for plotting
+            if t in snapshot_timesteps:
+                imgs = torch.abs(current_state).cpu().numpy().reshape(num_samples, side, side)
+                history.append(imgs)
+
+            # Prepare Input: (T, Batch, Dim)
+            circuit_input = torch.zeros(T, num_samples, dim, device=device, dtype=torch.complex64)
+            circuit_input[t] = current_state
+            
+            # Normalization
+            norm = torch.norm(circuit_input, p=2, dim=2, keepdim=True)
+            circuit_input = circuit_input / (norm + 1e-8)
+            
+            # Flatten: (T, B, D) -> (T*B, D)
+            circuit_input_flat = circuit_input.view(-1, dim)
+            
+            # --- MODIFICATION: Removed labels argument ---
+            # The model is unconditional, so we just pass the input.
+            pred_flat = model(circuit_input_flat)
+            # ---------------------------------------------
+            
+            # Reshape: (T*B, D) -> (T, B, D)
+            pred = pred_flat.view(T, num_samples, dim)
+            
+            # Update state: x_{t-1} = Model(x_t)
+            current_state = pred[t]
+            
+        # Save final state (t=0)
+        if 0 not in snapshot_timesteps:
+            imgs = torch.abs(current_state).cpu().numpy().reshape(num_samples, side, side)
+            history.append(imgs)
+
+    # 3. Plotting
+    num_cols = len(history)
+    fig, axes = plt.subplots(num_samples, num_cols, figsize=(2 * num_cols, 2 * num_samples))
+    
+    time_labels = [f"t={t}" for t in snapshot_timesteps]
+    if 0 not in snapshot_timesteps: 
+        time_labels.append("t=0 (Final)")
+
+    for row in range(num_samples): # Sample 0~9
+        for col in range(num_cols): # Time Steps
+            ax = axes[row, col]
+            
+            img = history[col][row] 
+            
+            ax.imshow(img, cmap='gray')
+            ax.axis('off')
+            
+            # Label changed to "Sample" because generation is random
+            if col == 0:
+                ax.text(-5, side//2, f"Sample {row}", fontsize=12, va='center', fontweight='bold')
+            
+            if row == 0:
+                ax.set_title(time_labels[col], fontsize=12)
+
+    plt.tight_layout()
+    
+    # Add to TensorBoard
+    if writer is not None:
+        writer.add_figure('Denoising samples', fig, global_step=epoch)
+        
+    plt.close(fig)
+
+
