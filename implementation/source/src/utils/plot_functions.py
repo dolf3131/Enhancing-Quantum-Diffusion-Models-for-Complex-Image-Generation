@@ -65,28 +65,20 @@ def show_mnist_alphas(mnist_images, alphas_bar, writer, device, height=16, width
 
 
 def log_generated_samples(
-    directory,
+    model,            
     epoch,
     T,
     num_qubits,
     writer,
-    *,
-    model_type="unet", # Default to unet
-    num_layers=None,   # Unused in Qiskit UNet but kept for compatibility
-    init_variance,
-    betas,
-    pqc_layers=None,
-    activation=False,
-    bottleneck_qubits=4, # bottlenect
-    use_pooling=False,
-    num_samples=16,
-    # Below are legacy arguments, kept for signature compatibility
-    MLP_depth=None, MLP_width=None, PQC_depth=None, ACT_depth=None, num_ancilla=None, batch_size=64
+    device,
+    target_digits=None, # Conditional
+    num_samples=16
 ):
     """
     Run reverse diffusion from noise and log a grid of samples to TensorBoard.
     Updated for Qiskit-based QuantumUNet.
     """
+    model.eval()
     dim = 2 ** num_qubits
     
     side = int(math.isqrt(dim))
@@ -94,36 +86,14 @@ def log_generated_samples(
         # Cannot reshape to an image grid (e.g., if num_qubits is odd)
         return
 
-    # Use default layers if not provided
-    if pqc_layers is None:
-        pqc_layers = [4]
-
-    try:
-        # Initialize the Qiskit-based QuantumUNet
-        # Note: We create a fresh instance to load the weights into
-        circuit_clone = QuantumUNet(
-            num_qubits=num_qubits,
-            layers=pqc_layers,
-            T=T,
-            init_variance=init_variance,
-            betas=betas,
-            activation=activation,
-            device=device,
-            bottleneck_qubits=bottleneck_qubits, # Must be passed
-            use_pooling=use_pooling
-        ).to(device)
-
-        # Load parameters for the specific epoch
-        # The new load_current_params expects 'epoch' to find the correct file
-        circuit_clone.load_current_params(directory, epoch=epoch)
-        circuit_clone.eval()
-        
-    except FileNotFoundError:
-        print(f"No checkpoint found for epoch {epoch}, skipping logging.")
-        return
-    except Exception as e:
-        print(f"Error initializing model for logging: {e}")
-        return
+    if target_digits is not None:
+        # Conditional: 지정된 숫자를 반복해서 채움
+        # 예: [0, 1] -> [0, 1, 0, 1, ...] (num_samples 만큼)
+        labels_list = (target_digits * (num_samples // len(target_digits) + 1))[:num_samples]
+        labels = torch.tensor(labels_list, device=device).long()
+    else:
+        # Unconditional
+        labels = None
 
     # Generate Samples
     with torch.no_grad():
@@ -135,14 +105,20 @@ def log_generated_samples(
         batch = batch / (torch.norm(batch, p=2, dim=1, keepdim=True) + 1e-8)
 
         # 2. Reverse Diffusion Loop
-        for t in range(T, 0, -1):
+        for t in range(T - 1, -1, -1):
             # (A) Create time tensor for the entire batch
             # Shape: (num_samples,)
-            t_tensor = torch.full((num_samples,), t, device=device, dtype=torch.long)
+            current_t_val = t + 1
+            t_tensor = torch.full((num_samples,), current_t_val, device=device, dtype=torch.long)
             
             # (B) Forward pass (Denoising)
             # Pass (Batch, Dim) and (Batch,) directly
-            predicted_batch = circuit_clone(batch, t_tensor)
+            if labels is not None:
+                # Conditional
+                predicted_batch = model(batch, t=t_tensor, labels=labels)
+            else:
+                # Unconditional
+                predicted_batch = model(batch, t=t_tensor)
             
             # (C) Update batch
             batch = predicted_batch
@@ -174,40 +150,56 @@ def log_generated_samples(
     writer.add_figure('Generated samples', fig, global_step=epoch)
     plt.close(fig)
 
-def plot_denoising_evolution_no_labels(model, num_qubits, T, device, writer, epoch=None):
+def plot_denoising_evolution(model, num_qubits, T, device, writer, epoch=None, target_digits=None):
     """
-    Plots the denoising evolution for 10 random samples.
-    (Since the model is unconditional, these rows represent random samples, not specific digits 0-9).
+    Plots the denoising evolution.
+    - If target_digits is provided: Runs in CONDITIONAL mode (generates specific digits).
+    - If target_digits is None: Runs in UNCONDITIONAL mode (generates 10 random samples).
     
-    Rows: Sample 0-9
-    Columns: Time steps (from T to 0)
+    Args:
+        target_digits (list, optional): List of digits to generate (e.g., [0, 1]). 
+                                        If None, generates 10 random samples.
     """
     model.eval()
     
-    # We generate 10 random samples
-    num_samples = 10
+    # --- 1. Determine Mode (Conditional vs Unconditional) ---
+    if target_digits is not None:
+        # [Conditional Mode]
+        num_samples = len(target_digits)
+        labels = torch.tensor(target_digits, device=device).long()
+        row_prefix = "Digit\n"
+        row_values = target_digits
+    else:
+        # [Unconditional Mode]
+        num_samples = 10
+        labels = None
+        row_prefix = "Sample"
+        row_values = range(num_samples) # 0 to 9 (just indices)
+
     dim = 2 ** num_qubits
-    side = int(math.isqrt(dim)) # ex: 16 (for 8 qubits)
+    side = int(math.isqrt(dim)) 
     
-    # Define snapshots to visualize (all T steps or a subset)
-    num_snapshots = T
+    # Define snapshots
+    num_snapshots = T # (Start, ... Intermediate ..., End)
     snapshot_timesteps = torch.linspace(T-1, 0, num_snapshots).int().tolist()
     
     history = [] 
 
     with torch.no_grad():
-        # 1. Initialize Random Noise (Batch=10, Dim, 2)
+        # 2. Initialize Noise
+        # Shape: (Batch=num_samples, Dim, 2)
         current_state = torch.view_as_complex(torch.randn(num_samples, dim, 2, device=device)).to(torch.complex64)
         
-        # 2. Backpropagation Loop (T-1 -> 0)
+        # 3. Denoising Loop (T-1 -> 0)
         for t in range(T - 1, -1, -1):
             
-            # Save snapshot for plotting
+            # (A) Save Snapshot
             if t in snapshot_timesteps:
                 imgs = torch.abs(current_state).cpu().numpy().reshape(num_samples, side, side)
                 history.append(imgs)
 
-            # Prepare Input: (T, Batch, Dim)
+            # (B) Prepare Input
+            # Shape: (T, Batch, Dim) -> Need to verify model input expectation
             circuit_input = torch.zeros(T, num_samples, dim, device=device, dtype=torch.complex64)
             circuit_input[t] = current_state
             
@@ -215,35 +207,51 @@ def plot_denoising_evolution_no_labels(model, num_qubits, T, device, writer, epo
             norm = torch.norm(circuit_input, p=2, dim=2, keepdim=True)
             circuit_input = circuit_input / (norm + 1e-8)
             
-            # Flatten: (T, B, D) -> (T*B, D)
+            # Flatten: (T*B, Dim)
             circuit_input_flat = circuit_input.view(-1, dim)
+
+            current_t_val = t + 1
+            t_tensor = torch.full((T * num_samples,), current_t_val, device=device, dtype=torch.long)
             
-            # --- MODIFICATION: Removed labels argument ---
-            # The model is unconditional, so we just pass the input.
-            pred_flat = model(circuit_input_flat)
-            # ---------------------------------------------
-            
-            # Reshape: (T*B, D) -> (T, B, D)
+            # (C) Model Execution
+            if labels is not None:
+                labels_repeated = labels.repeat(T)
+                # Conditional
+                pred_flat = model(circuit_input_flat, t=t_tensor, labels=labels_repeated)
+            else:
+                # Unconditional
+                pred_flat = model(circuit_input_flat, t=t_tensor)
+
+            # Reshape Output: (T, Batch, Dim)
             pred = pred_flat.view(T, num_samples, dim)
             
-            # Update state: x_{t-1} = Model(x_t)
+            # Update State
             current_state = pred[t]
             
-        # Save final state (t=0)
+        # Save Final State (t=0)
         if 0 not in snapshot_timesteps:
             imgs = torch.abs(current_state).cpu().numpy().reshape(num_samples, side, side)
             history.append(imgs)
 
-    # 3. Plotting
+    # --- 4. Plotting ---
     num_cols = len(history)
+    
+    # Dynamic Figure Size
     fig, axes = plt.subplots(num_samples, num_cols, figsize=(2 * num_cols, 2 * num_samples))
     
+    # Handle 1D axes array if num_samples is 1
+    if num_samples == 1:
+        axes = axes.reshape(1, -1)
+    
+    # Time Labels
     time_labels = [f"t={t}" for t in snapshot_timesteps]
     if 0 not in snapshot_timesteps: 
-        time_labels.append("t=0 (Final)")
+        time_labels.append("Final")
 
-    for row in range(num_samples): # Sample 0~9
-        for col in range(num_cols): # Time Steps
+    for row in range(num_samples): 
+        val = row_values[row] # Digit value or Sample index
+        
+        for col in range(num_cols):
             ax = axes[row, col]
             
             img = history[col][row] 
@@ -251,10 +259,11 @@ def plot_denoising_evolution_no_labels(model, num_qubits, T, device, writer, epo
             ax.imshow(img, cmap='gray')
             ax.axis('off')
             
-            # Label changed to "Sample" because generation is random
+            # Row Label (Left side)
             if col == 0:
-                ax.text(-5, side//2, f"Sample {row}", fontsize=12, va='center', fontweight='bold')
+                ax.text(-5, side//2, f"{row_prefix} {val}", fontsize=12, va='center', fontweight='bold')
             
+            # Time Label (Top side)
             if row == 0:
                 ax.set_title(time_labels[col], fontsize=12)
 
@@ -262,8 +271,8 @@ def plot_denoising_evolution_no_labels(model, num_qubits, T, device, writer, epo
     
     # Add to TensorBoard
     if writer is not None:
-        writer.add_figure('Denoising samples', fig, global_step=epoch)
+        tag_name = 'Conditional Evolution' if labels is not None else 'Unconditional Evolution'
+        writer.add_figure(tag_name, fig, global_step=epoch)
         
     plt.close(fig)
-
 

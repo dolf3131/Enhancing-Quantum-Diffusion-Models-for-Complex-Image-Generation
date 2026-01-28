@@ -215,13 +215,23 @@ def GroverMixer(params, wires):
 
 
 class PennyLanePQC(nn.Module):
-    def __init__(self, num_qubits, reps=2, activation=True):
+    def __init__(self, num_qubits, reps=2, activation=True, target_digits=None):
         super(PennyLanePQC, self).__init__()
         self.num_qubits = num_qubits
         self.reps = reps
         self.activation = activation
         if self.activation:
             self.act_func = ComplexLeakyReLU()
+        
+        # Conditional
+        self.target_digits = target_digits
+        if target_digits is not None:
+            self.num_classes = len(target_digits)
+            self.register_buffer('label_mapping', torch.full((10,), -1, dtype=torch.long))
+            for idx, digit in enumerate(target_digits):
+                self.label_mapping[digit] = idx
+        else:
+            self.num_classes = 0 # Unconditional mode flag
         
         # Block 1 & 3 (N qubits)
         self.params_per_rep_n = self._count_params_per_rep(num_qubits)
@@ -339,7 +349,7 @@ class PennyLanePQC(nn.Module):
             return observables
         return circuit
 
-    def forward(self, input_state_or_latent, all_weights):
+    def forward(self, input_state_or_latent, all_weights, labels=None):
         """
         Args:
             input_state_or_latent: 
@@ -350,31 +360,45 @@ class PennyLanePQC(nn.Module):
 
         end1 = self.len_block_n
         w1 = all_weights[:, :end1]
-        
-        # w2: Ancilla Block (N+1)
         end2 = end1 + self.len_block_ancilla
         w2 = all_weights[:, end1:end2]
-        
-        # w3: Data Block (N)
         w3 = all_weights[:, end2:]
+
 
         # Reshape & Transpose (Batch, Reps*Params) -> (Reps, Params, Batch)
         w1 = w1.reshape(batch_size, self.reps, self.params_per_rep_n).permute(1, 2, 0)
         w2 = w2.reshape(batch_size, self.reps, self.params_per_rep_ancilla).permute(1, 2, 0)
         w3 = w3.reshape(batch_size, self.reps, self.params_per_rep_n).permute(1, 2, 0)
+        
 
-        # --- 1. Block 1 (Data Qubits) ---
+        # --- Block 1 (Data Qubits) ---
         # input shape: (Batch, 2^N) -> Output: (Batch, 2^N)
         state1 = self.qnode1(input_state_or_latent, w1)
         if isinstance(state1, (list, tuple)):
             state1 = torch.stack(state1, dim=1)
-        
-        # --- 2. Ancilla Addition ---
-        zeros = torch.zeros_like(state1)
-        state1_ancilla = torch.cat([state1, zeros], dim=1) # (Batch, 2^{N+1})
-        
 
-        # --- 3. Block 2 (Data + Ancilla) ---
+
+        # --- Ancilla Initialization (Conditional Switch) ---
+        if labels is not None and self.num_classes > 0:
+            # (Conditional Mode) Angle Encoding
+            mapped_indices = self.label_mapping[labels.long()] # (Batch,)
+            
+            normalized_angles = (mapped_indices.float() + 0.5) * ((np.pi / 2) / self.num_classes)
+            
+            cos_vals = torch.cos(normalized_angles).view(-1, 1) # (Batch, 1)
+            sin_vals = torch.sin(normalized_angles).view(-1, 1)
+            
+            # Ancilla statevector: [cos * state, sin * state]
+            upper_part = state1 * cos_vals
+            lower_part = state1 * sin_vals
+            state1_ancilla = torch.cat([upper_part, lower_part], dim=1)
+
+        else:
+            # (Unconditional Mode) Default |0> Ancilla
+            zeros = torch.zeros_like(state1)
+            state1_ancilla = torch.cat([state1, zeros], dim=1)
+
+        # --- Block 2 (Data + Ancilla) ---
         state2 = self.qnode2(state1_ancilla, w2)
         if isinstance(state2, (list, tuple)):
             state2 = torch.stack(state2, dim=1)
@@ -390,7 +414,7 @@ class PennyLanePQC(nn.Module):
             state2_norm = state2_norm / torch.norm(state2_norm.abs(), p=2, dim=1, keepdim=True)
 
 
-        # --- 5. Block 3 (Data Qubits) ---
+        # --- Block 3 (Data Qubits) ---
         final_out = self.qnode3(state2_norm, w3, self.ano_weights)
         if isinstance(final_out, (list, tuple)):
             final_out = torch.stack(final_out, dim=1)    
@@ -404,7 +428,7 @@ class QuantumUNet(nn.Module):
     Hybrid Quantum-Classical U-Net (Optimized for AncillaPennyLanePQC)
     Encoder -> PennyLane PQC (Bottleneck) -> Decoder
     """
-    def __init__(self, num_qubits, layers, T, init_variance, betas, activation=False, device='cpu', bottleneck_qubits=4, use_pooling=False):
+    def __init__(self, num_qubits, layers, T, init_variance, betas, activation=False, device='cpu', bottleneck_qubits=4, use_pooling=False, target_digits=None):
         super(QuantumUNet, self).__init__()
         
         self.device = torch.device(device)
@@ -421,6 +445,12 @@ class QuantumUNet(nn.Module):
         hidden_dim = (2 ** num_qubits) * 2        # Classical Hidden Layer Size
         self.pqc_input_dim = 2 ** bottleneck_qubits # Dimension for PQC input (Amplitude Embedding etc.)
         
+        if target_digits is not None:
+            self.num_classes = len(target_digits)
+        else:
+            self.num_classes = 0 # Unconditional mode flag
+
+
         # --- [1] Encoder ---
         # Complex Input (Real+Imag concatenated) -> Latent Feature
         self.enc1 = nn.Linear(self.input_flat_dim, hidden_dim)
@@ -430,13 +460,19 @@ class QuantumUNet(nn.Module):
         self.pqc_input_norm = nn.LayerNorm(self.pqc_input_dim)
 
         # --- [2] Quantum Bottleneck (Ancilla PQC) ---
-        self.pqc_layer = PennyLanePQC(num_qubits=bottleneck_qubits, reps=layers, activation=activation)
+        self.pqc_layer = PennyLanePQC(
+            num_qubits=bottleneck_qubits, 
+            reps=layers, 
+            activation=activation,
+            target_digits=target_digits # conditional
+        )
 
         # Time-dependent Weights for PQC
         # Shape: (Total Time Steps, Total Parameters in PQC)
         self.pqc_weights = nn.Parameter(
             torch.randn(
-                T, self.pqc_layer.total_params, 
+                T, self.num_classes, 
+                self.pqc_layer.total_params, 
                 device=self.device
             ) * init_variance
         )
@@ -450,7 +486,7 @@ class QuantumUNet(nn.Module):
         
         self.final = nn.Linear(hidden_dim, self.input_flat_dim)
 
-    def forward(self, input, t=None):
+    def forward(self, input, t=None, labels=None):
         """
         Args:
             input: (Batch, Dim) Complex Tensor (or Real/Imag last dim)
@@ -481,18 +517,26 @@ class QuantumUNet(nn.Module):
 
         # --- Time-dependent Parameter Selection (Vectorized) ---
         if t is None:
-            selected_weights = self.pqc_weights[0].unsqueeze(0).expand(batch_size, -1)
+            t_idx = torch.zeros(batch_size, dtype=torch.long, device=self.device)
         else:
             # t: (Batch,) Tensor. 값 범위: 1 ~ T
             # Indexing: t-1 (0 ~ T-1)
             # self.pqc_weights: (T, Params)
             t_idx = (t - 1).long()
             t_idx = torch.clamp(t_idx, 0, self.T - 1)
-            selected_weights = self.pqc_weights[t_idx]
+
+        if labels is None:
+            # Unconditional
+            label_idx = torch.zeros(batch_size, dtype=torch.long, device=self.device)
+        else:
+            label_idx = labels.long()
+
+
+        selected_weights = self.pqc_weights[t_idx, label_idx]
 
         # --- PQC Execution ---
         # latent: (Batch, n_qubits), selected_weights: (Batch, n_params)
-        pqc_out = self.pqc_layer(latent, selected_weights)
+        pqc_out = self.pqc_layer(latent, selected_weights, labels=labels)
 
         if isinstance(pqc_out, (list, tuple)):
             pqc_out = torch.stack(pqc_out, dim=1)

@@ -14,7 +14,7 @@ from src.utils.schedule import make_schedule, get_default_device
 from src.utils.loss import infidelity_loss, LossHistory
 from src.utils.training_functions import assemble_input, assemble_mu_tilde
 from src.utils.plot_functions import show_mnist_alphas, log_generated_samples
-from src.utils.plot_functions import plot_denoising_evolution_no_labels
+from src.utils.plot_functions import plot_denoising_evolution
 from src.utils.evaluation import evaluate_generated_images
 from src.utils.qngd_optimizer import QNGDOptimizer, HybridOptimizer
 from src.data.load_data import load_mnist
@@ -81,7 +81,8 @@ def training(path, config, data_length):
 
     # 5. Load Data
     dataset = load_mnist(desired_digits, data_length)
-    show_mnist_alphas(dataset, alphas_bar, writer, device, height=16, width=16)
+    mnist_images = dataset.tensors[0]
+    show_mnist_alphas(mnist_images, alphas_bar, writer, device, height=16, width=16)
 
     # 6. Initialize PennyLane QuantumUNet
     print(f"Initializing PennyLane QuantumUNet on {device}...")
@@ -94,7 +95,8 @@ def training(path, config, data_length):
         activation=activation, 
         device=device,
         bottleneck_qubits=bottleneck_qubits, # Bottleneck Dimension
-        use_pooling=False            
+        use_pooling=False,
+        target_digits=desired_digits            
     ).to(device)
 
     # 7. Optimizer
@@ -126,17 +128,23 @@ def training(path, config, data_length):
         epoch_losses = []
         epoch_progress_bar = tqdm(enumerate(data_loader), total=len(data_loader), desc=f"Epoch {epoch}/{num_epochs}")
 
-        for _, image_batch in epoch_progress_bar:
+        for _, (image_batch, label_batch) in epoch_progress_bar:
             optimizer.zero_grad()
 
             # --- Data Preparation ---
+            current_batch_size = image_batch.size(0)
             
             # shape: (BS*T) uniformly train
-            t = torch.tensor(range(1, T+1), dtype=torch.long).repeat_interleave(batch_size).to(device)
+            t = torch.arange(1, T + 1, device=device).repeat_interleave(current_batch_size)
 
 
             # shape: (BS*T, 2^num_qubits)
             image_batch = image_batch.repeat(T, 1).to(device)
+
+            if desired_digits is not None:
+                labels_for_model = label_batch.repeat(T).to(device)
+            else:
+                labels_for_model = None
             
 
             # Add Noise (Forward Diffusion)
@@ -151,7 +159,7 @@ def training(path, config, data_length):
 
 
             # --- Forward Pass (Circuit) ---
-            predicted_mu_t = circuit(input_batch, t)
+            predicted_mu_t = circuit(input_batch, t, labels=labels_for_model)
 
             # --- Loss Calculation ---
             losses = infidelity_loss(predicted_mu_t, mu_tilde_t)
@@ -184,22 +192,24 @@ def training(path, config, data_length):
         # Generate Samples (Visualization)
         if epoch % sample_log_interval == 0 or epoch == num_epochs:
             log_generated_samples(
-                params_dir, epoch, T, num_qubits, writer,
-                init_variance=init_variance, 
-                betas=betas, 
-                pqc_layers=pqc_layers,
-                activation=activation, 
-                bottleneck_qubits=bottleneck_qubits,
+                model=circuit,
+                epoch=epoch,
+                T=T,
+                num_qubits=num_qubits,
+                writer=writer,
+                device=device,
+                target_digits=desired_digits,
                 num_samples=16
             )
 
-            plot_denoising_evolution_no_labels(
+            plot_denoising_evolution(
                 model=circuit,
                 num_qubits=num_qubits,
                 T=T,
                 device=device,
                 writer=writer,
-                epoch=epoch
+                epoch=epoch,
+                target_digits=desired_digits
             )
 
             # print(f"\n[Epoch {epoch}] Evaluating Inception Score...")

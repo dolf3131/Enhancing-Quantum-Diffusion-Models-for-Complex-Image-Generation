@@ -2,6 +2,7 @@ import os
 import torch
 import torch.nn.functional as F
 from torchvision import datasets
+from torch.utils.data import TensorDataset
 
 def load_mnist(desired_digits, data_length=None, device=None):
     """
@@ -36,6 +37,7 @@ def load_mnist(desired_digits, data_length=None, device=None):
     for digit in desired_digits:
         mask |= (targets == digit)
     selected_data = data[mask]  # Shape: (N_selected, 28, 28)
+    selected_targets = mnist_dataset.targets[mask]
 
     if selected_data.size(0) == 0:
         raise ValueError("No data found for the specified digits.")
@@ -52,12 +54,14 @@ def load_mnist(desired_digits, data_length=None, device=None):
     # Shuffle the data
     perm = torch.randperm(selected_data.size(0))
     selected_data = selected_data[perm]
+    selected_targets = selected_targets[perm]
 
     # If data_length is specified, take the first data_length samples
     if data_length is not None:
         if data_length > selected_data.size(0):
             raise ValueError(f"Requested data_length {data_length} exceeds available samples {selected_data.size(0)}.")
         selected_data = selected_data[:data_length]
+        selected_targets = selected_targets[:data_length]
 
     # Move to the chosen device for downstream training
     selected_data = selected_data.to(device)
@@ -70,4 +74,4 @@ def load_mnist(desired_digits, data_length=None, device=None):
     print(f"Dataset is stored in: {save_path}")
 
     # Return the path to the saved dataset
-    return selected_data
+    return TensorDataset(selected_data, selected_targets)
