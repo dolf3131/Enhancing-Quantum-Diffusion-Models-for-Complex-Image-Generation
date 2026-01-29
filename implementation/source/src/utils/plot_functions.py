@@ -180,96 +180,87 @@ def plot_denoising_evolution(model, num_qubits, T, device, writer, epoch=None, t
     side = int(math.isqrt(dim)) 
     
     # Define snapshots
-    num_snapshots = T # (Start, ... Intermediate ..., End)
-    snapshot_timesteps = torch.linspace(T-1, 0, num_snapshots).int().tolist()
+    snapshot_timesteps = torch.linspace(T, 1, 10).int().unique().tolist()
+    # Sort descending just in case
+    snapshot_timesteps.sort(reverse=True)
     
     history = [] 
 
     with torch.no_grad():
-        # 2. Initialize Noise
-        # Shape: (Batch=num_samples, Dim, 2)
+        # --- 2. Initialize Noise ---
         current_state = torch.view_as_complex(torch.randn(num_samples, dim, 2, device=device)).to(torch.complex64)
+        current_state = current_state / (torch.norm(current_state, p=2, dim=1, keepdim=True) + 1e-8)
         
-        # 3. Denoising Loop (T-1 -> 0)
-        for t in range(T - 1, -1, -1):
-            
-            # (A) Save Snapshot
-            if t in snapshot_timesteps:
-                imgs = torch.abs(current_state).cpu().numpy().reshape(num_samples, side, side)
-                history.append(imgs)
-
-            # (B) Prepare Input
-            # Shape: (T, Batch, Dim) -> Need to verify model input expectation
-            circuit_input = torch.zeros(T, num_samples, dim, device=device, dtype=torch.complex64)
-            circuit_input[t] = current_state
-            
-            # Normalization
-            norm = torch.norm(circuit_input, p=2, dim=2, keepdim=True)
-            circuit_input = circuit_input / (norm + 1e-8)
-            
-            # Flatten: (T*B, Dim)
-            circuit_input_flat = circuit_input.view(-1, dim)
-
-            current_t_val = t + 1
-            t_tensor = torch.full((T * num_samples,), current_t_val, device=device, dtype=torch.long)
-            
-            # (C) Model Execution
-            if labels is not None:
-                labels_repeated = labels.repeat(T)
-                # Conditional
-                pred_flat = model(circuit_input_flat, t=t_tensor, labels=labels_repeated)
-            else:
-                # Unconditional
-                pred_flat = model(circuit_input_flat, t=t_tensor)
-
-            # Reshape Output: (T, Batch, Dim)
-            pred = pred_flat.view(T, num_samples, dim)
-            
-            # Update State
-            current_state = pred[t]
-            
-        # Save Final State (t=0)
-        if 0 not in snapshot_timesteps:
+        # Save Initial Noise (t=T) if requested
+        if T in snapshot_timesteps:
             imgs = torch.abs(current_state).cpu().numpy().reshape(num_samples, side, side)
             history.append(imgs)
 
+        # --- 3. Denoising Loop (T -> 1) ---
+        for t in range(T, 0, -1):
+            
+            # (A) Time Tensor
+            t_tensor = torch.full((num_samples,), t, device=device, dtype=torch.long)
+            
+            # (B) Model Execution
+            # Pass only the current_state. 
+            # The model retrieves weights for time 't' using t_tensor.
+            prediction = model(current_state, t=t_tensor, labels=labels)
+            
+            # (C) Update State & Renormalize
+            current_state = prediction
+            current_state = current_state / (torch.norm(current_state, p=2, dim=1, keepdim=True) + 1e-8)
+            
+            # (D) Save Snapshot (for the NEXT step, which is t-1)
+            # If we just computed step t->t-1, the current state effectively represents t-1.
+            next_t = t - 1
+            if next_t in snapshot_timesteps or next_t == 0: 
+                # Note: usually we want to see t=0 (final result)
+                imgs = torch.abs(current_state).cpu().numpy().reshape(num_samples, side, side)
+                history.append(imgs)
+
     # --- 4. Plotting ---
     num_cols = len(history)
-    
-    # Dynamic Figure Size
     fig, axes = plt.subplots(num_samples, num_cols, figsize=(2 * num_cols, 2 * num_samples))
     
-    # Handle 1D axes array if num_samples is 1
-    if num_samples == 1:
-        axes = axes.reshape(1, -1)
+    if num_samples == 1: axes = axes.reshape(1, -1)
+    if num_cols == 1: axes = axes.reshape(-1, 1)
     
-    # Time Labels
-    time_labels = [f"t={t}" for t in snapshot_timesteps]
-    if 0 not in snapshot_timesteps: 
-        time_labels.append("Final")
-
+    # Create column titles (Time steps)
+    # We collected snapshots: [T, ..., 0]
+    # We need to map collected history back to labels
+    col_labels = []
+    if T in snapshot_timesteps: col_labels.append(f"t={T}")
+    for t_val in snapshot_timesteps:
+        if t_val != T: # Avoid double adding T
+            col_labels.append(f"t={t_val}")
+    if 0 not in snapshot_timesteps: # If 0 wasn't in snapshots but we added final state
+         # Logic check: loop logic adds t-1. So if last t=1, we added t=0.
+         pass
+    
+    # A simplified label generation for safety
+    plot_labels = [f"Step {i}" for i in range(num_cols)]
+    # Try to be more specific if lengths match
+    # (This part can be adjusted based on exact snapshot logic preference)
+    
     for row in range(num_samples): 
-        val = row_values[row] # Digit value or Sample index
+        val = row_values[row]
         
         for col in range(num_cols):
             ax = axes[row, col]
-            
             img = history[col][row] 
             
             ax.imshow(img, cmap='gray')
             ax.axis('off')
             
-            # Row Label (Left side)
             if col == 0:
                 ax.text(-5, side//2, f"{row_prefix} {val}", fontsize=12, va='center', fontweight='bold')
             
-            # Time Label (Top side)
             if row == 0:
-                ax.set_title(time_labels[col], fontsize=12)
+                ax.set_title(plot_labels[col], fontsize=10)
 
     plt.tight_layout()
     
-    # Add to TensorBoard
     if writer is not None:
         tag_name = 'Conditional Evolution' if labels is not None else 'Unconditional Evolution'
         writer.add_figure(tag_name, fig, global_step=epoch)

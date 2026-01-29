@@ -236,7 +236,7 @@ class PennyLanePQC(nn.Module):
         # Block 1 & 3 (N qubits)
         self.params_per_rep_n = self._count_params_per_rep(num_qubits)
         # Block 2 (N+1 qubits)
-        self.params_per_rep_ancilla = self._count_params_per_rep(num_qubits + 1)
+        self.params_per_rep_ancilla = self._count_params_per_rep(num_qubits)
         
         self.len_block_n = self.params_per_rep_n * reps
         self.len_block_ancilla = self.params_per_rep_ancilla * reps
@@ -255,7 +255,7 @@ class PennyLanePQC(nn.Module):
 
         # --- QNodes 정의 ---
         self.qnode1 = self._create_qnode_state(self.dev_n, num_qubits)
-        self.qnode2 = self._create_qnode_state(self.dev_ancilla, num_qubits + 1)
+        self.qnode2 = self._create_qnode_ancilla(self.dev_ancilla, num_qubits)
         self.qnode3 = self._create_qnode_expval(self.dev_n, num_qubits)
 
     def _layer_ansatz(self, layer_params, wires):
@@ -302,6 +302,31 @@ class PennyLanePQC(nn.Module):
         for d in range(self.reps):
             self._layer_ansatz(weights[d], wires)
             
+    def _create_qnode_ancilla(self, dev, n_wires):
+        """
+        Controlled-PQC QNode
+        """
+        @qml.qnode(dev, interface='torch', diff_method='backprop')
+        def circuit(inputs, weights):
+            
+            # 1. Data Encoding (Amplitude Embedding)
+            qml.StatePrep(inputs, wires=range(n_wires))
+            
+            # 2. Ancilla (Superposition: |+>)
+            qml.Hadamard(wires=[n_wires])
+            
+            # 3. Controlled Ansatz Execution
+            for i in range(self.reps):
+                # qml.ctrl(함수, 제어큐비트)(파라미터, 타겟큐비트)
+                qml.ctrl(self._layer_ansatz, control=[n_wires])(
+                    weights[i], wires=range(n_wires)
+                )
+
+            # 4. Hadamard Test
+            qml.Hadamard(wires=[n_wires])
+            
+            return qml.expval(qml.PauliX([n_wires])), qml.state()
+        return circuit
 
     def _create_qnode_state(self, dev, n_wires):
         """Returns state vector QNode"""
@@ -379,47 +404,59 @@ class PennyLanePQC(nn.Module):
 
 
         # --- Ancilla Initialization (Conditional Switch) ---
-        if labels is not None and self.num_classes > 0:
-            # (Conditional Mode) Angle Encoding
-            mapped_indices = self.label_mapping[labels.long()] # (Batch,)
+        # if labels is not None and self.num_classes > 0:
+        #     # (Conditional Mode) Angle Encoding
+        #     mapped_indices = self.label_mapping[labels.long()] # (Batch,)
             
-            normalized_angles = (mapped_indices.float() + 0.5) * ((np.pi / 2) / self.num_classes)
+        #     normalized_angles = (mapped_indices.float() + 0.5) * ((np.pi / 2) / self.num_classes)
             
-            cos_vals = torch.cos(normalized_angles).view(-1, 1) # (Batch, 1)
-            sin_vals = torch.sin(normalized_angles).view(-1, 1)
+        #     cos_vals = torch.cos(normalized_angles).view(-1, 1) # (Batch, 1)
+        #     sin_vals = torch.sin(normalized_angles).view(-1, 1)
             
-            # Ancilla statevector: [cos * state, sin * state]
-            upper_part = state1 * cos_vals
-            lower_part = state1 * sin_vals
-            state1_ancilla = torch.cat([upper_part, lower_part], dim=1)
+        #     # Ancilla statevector: [cos * state, sin * state]
+        #     upper_part = state1 * cos_vals
+        #     lower_part = state1 * sin_vals
+        #     state1_ancilla = torch.cat([upper_part, lower_part], dim=1)
 
+        # else:
+        #     # (Unconditional Mode) Default |0> Ancilla
+        #     zeros = torch.zeros_like(state1)
+        #     state1_ancilla = torch.cat([state1, zeros], dim=1)
+
+        # --- Block 2 (Ancilla-Controlled DQC1) ---
+        # Input: Data State (2^N) -> Output: (Ancilla Exp, Joint State 2^{N+1})
+        anc_vals, joint_states = self.qnode2(state1, w2)
+
+        if anc_vals.ndim == 1:
+            anc_tensor = anc_vals.unsqueeze(1)
         else:
-            # (Unconditional Mode) Default |0> Ancilla
-            zeros = torch.zeros_like(state1)
-            state1_ancilla = torch.cat([state1, zeros], dim=1)
+            anc_tensor = anc_vals
 
-        # --- Block 2 (Data + Ancilla) ---
-        state2 = self.qnode2(state1_ancilla, w2)
-        if isinstance(state2, (list, tuple)):
-            state2 = torch.stack(state2, dim=1)
+        # Stack Results
+        s0 = joint_states[:, ::2]  # (Batch, 2^N)
+        s1 = joint_states[:, 1::2] # (Batch, 2^N)
+        
+        # <+|Psi> 프로젝션 수행
+        state2 = s0 + s1
+
+
 
         # Renormalize
-        state2_sliced = state2[:, :2**self.num_qubits]
-        
         epsilon = 1e-8
-        norm = torch.norm(state2_sliced, p=2, dim=1, keepdim=True)
-        state2_norm = state2_sliced / (norm + epsilon)
+        norm = torch.norm(state2, p=2, dim=1, keepdim=True)
+        state2_norm = state2 / (norm + epsilon)
+
         if self.activation:
             state2_norm = self.act_func(state2_norm)
             state2_norm = state2_norm / torch.norm(state2_norm.abs(), p=2, dim=1, keepdim=True)
 
-
+        
         # --- Block 3 (Data Qubits) ---
         final_out = self.qnode3(state2_norm, w3, self.ano_weights)
         if isinstance(final_out, (list, tuple)):
             final_out = torch.stack(final_out, dim=1)    
         final_out = final_out.float()
-
+        final_out = torch.cat([final_out, anc_tensor.float()], dim=1)
         return final_out
 
 # --- PennyLane Hybrid Quantum U-Net ---
@@ -480,7 +517,7 @@ class QuantumUNet(nn.Module):
         # --- [3] Decoder ---
         # Input: PQC Output (bottleneck_qubits) + Skip Connection (input_flat_dim)
         # PQC output size is typically 'bottleneck_qubits' (measurements)
-        self.pqc_output_dim = bottleneck_qubits**2
+        self.pqc_output_dim = bottleneck_qubits**2 + 1
         self.dec1 = nn.Linear(self.pqc_output_dim + self.input_flat_dim, hidden_dim)
         self.act_dec1 = nn.ReLU()
         
