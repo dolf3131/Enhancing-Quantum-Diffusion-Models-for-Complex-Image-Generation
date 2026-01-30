@@ -325,7 +325,7 @@ class PennyLanePQC(nn.Module):
             # 4. Hadamard Test
             qml.Hadamard(wires=[n_wires])
             
-            return qml.expval(qml.PauliX([n_wires])), qml.state()
+            return qml.expval(qml.PauliZ([n_wires])), qml.state()
         return circuit
 
     def _create_qnode_state(self, dev, n_wires):
