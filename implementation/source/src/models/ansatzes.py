@@ -282,8 +282,7 @@ class PennyLanePQC(nn.Module):
 
         ptr += PhaseMixing(layer_params[ptr:], wires=wires)
 
-            
-
+          
 
     def _count_params_per_rep(self, n_wires):
         """
@@ -317,7 +316,7 @@ class PennyLanePQC(nn.Module):
             
             # 3. Controlled Ansatz Execution
             for i in range(self.reps):
-                # qml.ctrl(함수, 제어큐비트)(파라미터, 타겟큐비트)
+                # qml.ctrl
                 qml.ctrl(self._layer_ansatz, control=[n_wires])(
                     weights[i], wires=range(n_wires)
                 )

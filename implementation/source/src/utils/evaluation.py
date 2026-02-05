@@ -3,6 +3,7 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torchmetrics.image.fid import FrechetInceptionDistance
 
 from src.utils.schedule import get_default_device
 
@@ -85,3 +86,40 @@ def evaluate_generated_images(generated_images):
         inception_score = torch.exp(mean_kl_divergence)
         
         return inception_score.item()
+
+
+
+def calculate_fid(generated_images, real_images, device):
+    """
+    generated_images: (N, 256) or (N, 1, 16, 16) - Normalized
+    real_images: (N, 1, 16, 16) or similar
+    """
+    fid = FrechetInceptionDistance(feature=2048, normalize=True).to(device)
+
+    # 1. preprocessing (N, 256) -> (N, 3, 299, 299)
+    def preprocess_for_inception(imgs):
+        if imgs.dim() == 2:
+            imgs = imgs.view(-1, 1, 16, 16)
+        
+        # 0~1 clamp
+        imgs = torch.clamp(imgs, 0.0, 1.0) 
+
+        # 1 -> 3
+        imgs = imgs.repeat(1, 3, 1, 1) 
+        
+        # 299x299 resizing
+        imgs = torch.nn.functional.interpolate(imgs, size=(299, 299), mode='bilinear', align_corners=False)
+        return imgs
+
+    fake_ready = preprocess_for_inception(generated_images)
+    real_ready = preprocess_for_inception(real_images)
+
+    # 2. FID Update
+    # real=True
+    fid.update(real_ready, real=True)
+    # real=False
+    fid.update(fake_ready, real=False)
+
+    # 3. calculate FID score
+    score = fid.compute()
+    return score.item()

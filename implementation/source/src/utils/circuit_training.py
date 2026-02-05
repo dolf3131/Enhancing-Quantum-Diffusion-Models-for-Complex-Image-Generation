@@ -15,7 +15,7 @@ from src.utils.loss import infidelity_loss, LossHistory
 from src.utils.training_functions import assemble_input, assemble_mu_tilde
 from src.utils.plot_functions import show_mnist_alphas, log_generated_samples
 from src.utils.plot_functions import plot_denoising_evolution
-from src.utils.evaluation import evaluate_generated_images
+from src.utils.evaluation import evaluate_generated_images, calculate_fid
 from src.utils.qngd_optimizer import QNGDOptimizer, HybridOptimizer
 from src.data.load_data import load_mnist
 
@@ -212,46 +212,44 @@ def training(path, config, data_length):
                 target_digits=desired_digits
             )
 
-            # print(f"\n[Epoch {epoch}] Evaluating Inception Score...")
+            print(f"\n[Epoch {epoch}] Calculating FID...")
             
-            # eval_batch_size = batch_size 
-            # dim = 2 ** num_qubits
+            # --- FID 측정용 샘플 생성 (시간이 걸리므로 128~256장 정도로 타협 추천) ---
+            num_fid_samples = 256  # 양자 시뮬레이션 속도 고려 (최종 논문용은 1000장 이상 권장)
+            fid_batch_size = 32
             
-            # with torch.no_grad():
-                
-            #     current_state = torch.view_as_complex(torch.randn(eval_batch_size, dim, 2, device=device)).to(torch.complex64)
-                
-            #     # Denoising (from T to 0)
-            #     for t in range(T - 1, -1, -1):
-            #         # (T, Batch, Dim)
-            #         circuit_input = torch.zeros(T, eval_batch_size, dim, device=device, dtype=torch.complex64)
-            #         circuit_input[t] = current_state
+            all_fake_images = []
+            circuit.eval()
+            
+            with torch.no_grad():
+                # 1. fake image generation
+                for _ in range(num_fid_samples // fid_batch_size):
+                    z = torch.randn(fid_batch_size, 2**num_qubits, 2, device=device)
+                    z = torch.view_as_complex(z).to(torch.complex64)
+                    z = z / (torch.norm(z, p=2, dim=1, keepdim=True) + 1e-8)
                     
-            #         # Normalization - sampling.py
-            #         norm = torch.norm(circuit_input, p=2, dim=2, keepdim=True)
-            #         circuit_input = circuit_input / (norm + 1e-8)
+                    # Reverse Diffusion
+                    for t in range(T - 1, -1, -1):
+                        t_tensor = torch.full((fid_batch_size,), t + 1, device=device, dtype=torch.long)
+                        z = circuit(z, t=t_tensor) # Unconditional
+                        z = z / (torch.norm(z, p=2, dim=1, keepdim=True) + 1e-8)
                     
-            #         circuit_input_flat = circuit_input.view(-1, dim)
+                    # Magnitude
+                    fake_imgs = torch.abs(z) # (Batch, 256)
+                    all_fake_images.append(fake_imgs)
+                
+                fake_tensor = torch.cat(all_fake_images, dim=0)
 
-            #         pred_flat = circuit(circuit_input_flat)
-
-            #         pred = pred_flat.view(T, eval_batch_size, dim)
-            #         current_state = pred[t]
+                # 2. real image preparation
+                real_tensor = dataset.tensors[0][:num_fid_samples].to(device)
                 
-            #     # Shape: (Batch, Dim) -> (Batch, 256)
-            #     generated_images = torch.abs(current_state)
-                
-            #     # Inception Score
-            #     try:
-            #         inception_score = evaluate_generated_images(generated_images)
-                    
-            #         # TensorBoard에 기록
-            #         writer.add_scalar('Evaluation/Inception_Score', inception_score, epoch)
-            #         print(f"Inception Score: {inception_score:.4f}")
-                    
-            #     except Exception as e:
-            #         print(f"Evaluation failed: {e}")
-            #         print("Ensure 'models/mnist_cnn.pth' exists and dimensions match.")
+                # 3. FID calculation
+                try:
+                    fid_score = calculate_fid(fake_tensor, real_tensor, device)
+                    writer.add_scalar('Evaluation/FID', fid_score, epoch)
+                    print(f" -> FID Score: {fid_score:.4f}")
+                except Exception as e:
+                    print(f"FID calculation failed: {e}")
 
         # Check Best Loss
         epoch_mean_loss = float(np.mean(epoch_losses))
