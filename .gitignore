@@ -27,3 +27,5 @@ implementation/check-env&flow.ipynb
 implementation/main.py
 implementation/resnet.py
 implementation/unet.py
+
+implementation/source/src/data/MNIST

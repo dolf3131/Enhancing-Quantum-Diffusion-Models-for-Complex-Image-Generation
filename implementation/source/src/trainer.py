@@ -18,7 +18,7 @@ hyperparameters = {
     "model_type":        ["UNet"],       # identifier
     "num_qubits":        [8],            # Input dimension: 2^8 = 256 (16x16 image)
     "bottleneck_qubits": [4],            # Number of Qiskit PQC
-    "pqc_layers":        [20],            # Reps
+    "pqc_layers":        [10],            # Reps
     "activation":        [True],        # Activation
 
     # --- Diffusion Process ---
